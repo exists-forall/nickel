@@ -1,0 +1,6 @@
+[package]
+name = "linear"
+version = "0.1.0"
+authors = ["William Brandon <hypercube97@gmail.com>"]
+
+[dependencies]
