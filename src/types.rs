@@ -34,6 +34,7 @@ pub enum TypeContent<Free> {
         arg: Type<Free>,
         ret: Type<Free>,
     },
+    Pair { left: Type<Free>, right: Type<Free> },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -115,6 +116,17 @@ impl<Free: Clone> Type<Free> {
                     content: Rc::new(TypeContent::Func { access, arg, ret }),
                 }
             }
+
+            TypeContent::Pair {
+                mut left,
+                mut right,
+            } => {
+                let offset = remove_common(&mut left.offset, &mut right.offset);
+                Type {
+                    offset,
+                    content: Rc::new(TypeContent::Pair { left, right }),
+                }
+            }
         }
     }
 
@@ -161,6 +173,22 @@ impl<Free: Clone> Type<Free> {
                     ret: Type {
                         offset: add_offsets(ret.offset, self.offset),
                         content: ret.content.clone(),
+                    },
+                }
+            }
+
+            &TypeContent::Pair {
+                ref left,
+                ref right,
+            } => {
+                TypeContent::Pair {
+                    left: Type {
+                        offset: add_offsets(left.offset, self.offset),
+                        content: left.content.clone(),
+                    },
+                    right: Type {
+                        offset: add_offsets(right.offset, self.offset),
+                        content: right.content.clone(),
                     },
                 }
             }
