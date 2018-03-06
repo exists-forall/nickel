@@ -37,8 +37,35 @@ pub enum TypeContent {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Type {
-    offset: usize,
+    offset: Option<usize>,
     content: Rc<TypeContent>,
+}
+
+fn add_offsets(off1: Option<usize>, off2: Option<usize>) -> Option<usize> {
+    match (off1, off2) {
+        (Some(a), Some(b)) => Some(a + b),
+        (_, _) => None,
+    }
+}
+
+fn remove_common(off1: &mut Option<usize>, off2: &mut Option<usize>) -> Option<usize> {
+    let (new_off1, new_off2, common) = match (*off1, *off2) {
+        (Some(a), Some(b)) => {
+            let common = a.min(b);
+            (Some(a - common), Some(b - common), Some(common))
+        }
+        (Some(a), None) => (Some(0), None, Some(a)),
+        (None, Some(b)) => (None, Some(0), Some(b)),
+        (_, _) => {
+            // This introduces the easy-to-check optimality condition that at least one of off1 and
+            // off2 always ends up set to 0.
+            (Some(0), Some(0), None)
+        }
+    };
+
+    *off1 = new_off1;
+    *off2 = new_off2;
+    common
 }
 
 impl Type {
@@ -46,7 +73,7 @@ impl Type {
         match content {
             TypeContent::Var { index } => {
                 Type {
-                    offset: index,
+                    offset: Some(index),
                     content: Rc::new(TypeContent::Var { index: 0 }),
                 }
             }
@@ -62,28 +89,22 @@ impl Type {
                         quantifier,
                         kind,
                         body: Type {
-                            offset: 0,
+                            offset: Some(0),
                             content: body.content,
                         },
                     }),
                 }
             }
 
-            TypeContent::Func { access, arg, ret } => {
-                let offset = arg.offset.min(ret.offset);
+            TypeContent::Func {
+                access,
+                mut arg,
+                mut ret,
+            } => {
+                let offset = remove_common(&mut arg.offset, &mut ret.offset);
                 Type {
                     offset,
-                    content: Rc::new(TypeContent::Func {
-                        access,
-                        arg: Type {
-                            offset: arg.offset - offset,
-                            content: arg.content,
-                        },
-                        ret: Type {
-                            offset: ret.offset - offset,
-                            content: ret.content,
-                        },
-                    }),
+                    content: Rc::new(TypeContent::Func { access, arg, ret }),
                 }
             }
         }
@@ -93,7 +114,10 @@ impl Type {
         match &*self.content {
             &TypeContent::Var { index } => {
                 debug_assert_eq!(index, 0);
-                TypeContent::Var { index: index + self.offset }
+                let offset = self.offset.expect(
+                    "Cannot have a variable as a leaf of a tree with no minimum index",
+                );
+                TypeContent::Var { index: index + offset }
             }
 
             &TypeContent::Quantified {
@@ -101,12 +125,12 @@ impl Type {
                 ref kind,
                 ref body,
             } => {
-                debug_assert_eq!(body.offset, 0);
+                debug_assert_eq!(body.offset, Some(0));
                 TypeContent::Quantified {
                     quantifier,
                     kind: kind.clone(),
                     body: Type {
-                        offset: body.offset + self.offset,
+                        offset: add_offsets(body.offset, self.offset),
                         content: body.content.clone(),
                     },
                 }
@@ -117,15 +141,15 @@ impl Type {
                 ref arg,
                 ref ret,
             } => {
-                debug_assert!(arg.offset == 0 || ret.offset == 0);
+                debug_assert!(arg.offset == Some(0) || ret.offset == Some(0));
                 TypeContent::Func {
                     access,
                     arg: Type {
-                        offset: arg.offset + self.offset,
+                        offset: add_offsets(arg.offset, self.offset),
                         content: arg.content.clone(),
                     },
                     ret: Type {
-                        offset: ret.offset + self.offset,
+                        offset: add_offsets(ret.offset, self.offset),
                         content: ret.content.clone(),
                     },
                 }
