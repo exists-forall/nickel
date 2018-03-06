@@ -21,24 +21,25 @@ pub enum FuncAccess {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TypeContent {
+pub enum TypeContent<Free> {
+    Free { free: Free },
     Var { index: usize },
     Quantified {
         quantifier: Quantifier,
         kind: Kind,
-        body: Type,
+        body: Type<Free>,
     },
     Func {
         access: FuncAccess,
-        arg: Type,
-        ret: Type,
+        arg: Type<Free>,
+        ret: Type<Free>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Type {
+pub struct Type<Free> {
     offset: Option<usize>,
-    content: Rc<TypeContent>,
+    content: Rc<TypeContent<Free>>,
 }
 
 fn add_offsets(off1: Option<usize>, off2: Option<usize>) -> Option<usize> {
@@ -68,9 +69,16 @@ fn remove_common(off1: &mut Option<usize>, off2: &mut Option<usize>) -> Option<u
     common
 }
 
-impl Type {
-    pub fn from_content(content: TypeContent) -> Self {
+impl<Free: Clone> Type<Free> {
+    pub fn from_content(content: TypeContent<Free>) -> Self {
         match content {
+            TypeContent::Free { free } => {
+                Type {
+                    offset: None,
+                    content: Rc::new(TypeContent::Free { free }),
+                }
+            }
+
             TypeContent::Var { index } => {
                 Type {
                     offset: Some(index),
@@ -110,8 +118,10 @@ impl Type {
         }
     }
 
-    pub fn to_content(&self) -> TypeContent {
+    pub fn to_content(&self) -> TypeContent<Free> {
         match &*self.content {
+            &TypeContent::Free { ref free } => TypeContent::Free { free: free.clone() },
+
             &TypeContent::Var { index } => {
                 debug_assert_eq!(index, 0);
                 let offset = self.offset.expect(
