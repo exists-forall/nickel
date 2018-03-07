@@ -21,75 +21,60 @@ pub enum FuncAccess {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TypeContent<Free> {
-    Free { free: Free },
+enum TypeDataInner {
     Var { index: usize },
     Quantified {
         quantifier: Quantifier,
         kind: Kind,
-        body: Type<Free>,
+        body: TypeData,
     },
     Func {
         access: FuncAccess,
-        arg: Type<Free>,
-        ret: Type<Free>,
+        arg: TypeData,
+        ret: TypeData,
     },
-    Pair { left: Type<Free>, right: Type<Free> },
+    Pair { left: TypeData, right: TypeData },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Type<Free> {
-    offset: Option<usize>,
-    content: Rc<TypeContent<Free>>,
+struct TypeData {
+    max_index: usize, // exclusive upper bound
+    inner: Rc<TypeDataInner>,
 }
 
-fn add_offsets(off1: Option<usize>, off2: Option<usize>) -> Option<usize> {
-    match (off1, off2) {
-        (Some(a), Some(b)) => Some(a + b),
-        (_, _) => None,
-    }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TypeContent {
+    Var { free: usize, index: usize },
+    Quantified {
+        quantifier: Quantifier,
+        kind: Kind,
+        body: Type,
+    },
+    Func {
+        access: FuncAccess,
+        arg: Type,
+        ret: Type,
+    },
+    Pair { left: Type, right: Type },
 }
 
-fn remove_common(off1: &mut Option<usize>, off2: &mut Option<usize>) -> Option<usize> {
-    let (new_off1, new_off2, common) = match (*off1, *off2) {
-        (Some(a), Some(b)) => {
-            let common = a.min(b);
-            (Some(a - common), Some(b - common), Some(common))
-        }
-        (Some(a), None) => (Some(0), None, Some(a)),
-        (None, Some(b)) => (None, Some(0), Some(b)),
-        (_, _) => {
-            // This introduces the easy-to-check optimality condition that at least one of off1 and
-            // off2 always ends up set to 0.
-            (Some(0), Some(0), None)
-        }
-    };
-
-    *off1 = new_off1;
-    *off2 = new_off2;
-    common
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Type {
+    free: usize,
+    data: TypeData,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Occurrence {
-    CertainlyAbsent,
-    PossiblyPresent,
-}
-
-impl<Free: Clone> Type<Free> {
-    pub fn from_content(content: TypeContent<Free>) -> Self {
+impl Type {
+    pub fn from_content(content: TypeContent) -> Self {
         match content {
-            TypeContent::Free { free } => {
+            TypeContent::Var { free, index } => {
+                assert!(index < free);
                 Type {
-                    offset: None,
-                    content: Rc::new(TypeContent::Free { free }),
-                }
-            }
-
-            TypeContent::Var { index } => {
-                Type {
-                    offset: Some(index),
-                    content: Rc::new(TypeContent::Var { index: 0 }),
+                    free,
+                    data: TypeData {
+                        max_index: index + 1,
+                        inner: Rc::new(TypeDataInner::Var { index }),
+                    },
                 }
             }
 
@@ -98,169 +83,243 @@ impl<Free: Clone> Type<Free> {
                 kind,
                 body,
             } => {
+                assert!(1 <= body.free, "Must have at least one free variable");
                 Type {
-                    offset: body.offset,
-                    content: Rc::new(TypeContent::Quantified {
-                        quantifier,
-                        kind,
-                        body: Type {
-                            offset: Some(0),
-                            content: body.content,
-                        },
-                    }),
+                    free: body.free - 1,
+                    data: TypeData {
+                        max_index: body.data.max_index,
+                        inner: Rc::new(TypeDataInner::Quantified {
+                            quantifier,
+                            kind,
+                            body: body.data,
+                        }),
+                    },
                 }
             }
 
-            TypeContent::Func {
-                access,
-                mut arg,
-                mut ret,
-            } => {
-                let offset = remove_common(&mut arg.offset, &mut ret.offset);
+            TypeContent::Func { access, arg, ret } => {
+                assert_eq!(arg.free, ret.free, "Free variables do not match");
                 Type {
-                    offset,
-                    content: Rc::new(TypeContent::Func { access, arg, ret }),
+                    free: arg.free,
+                    data: TypeData {
+                        max_index: arg.data.max_index.max(ret.data.max_index),
+                        inner: Rc::new(TypeDataInner::Func {
+                            access,
+                            arg: arg.data,
+                            ret: ret.data,
+                        }),
+                    },
                 }
             }
 
-            TypeContent::Pair {
-                mut left,
-                mut right,
-            } => {
-                let offset = remove_common(&mut left.offset, &mut right.offset);
+            TypeContent::Pair { left, right } => {
+                assert_eq!(left.free, right.free, "Free variables do not match");
                 Type {
-                    offset,
-                    content: Rc::new(TypeContent::Pair { left, right }),
+                    free: left.free,
+                    data: TypeData {
+                        max_index: left.data.max_index.max(right.data.max_index),
+                        inner: Rc::new(TypeDataInner::Pair {
+                            left: left.data,
+                            right: right.data,
+                        }),
+                    },
                 }
             }
         }
     }
 
-    pub fn to_content(&self) -> TypeContent<Free> {
-        match &*self.content {
-            &TypeContent::Free { ref free } => TypeContent::Free { free: free.clone() },
-
-            &TypeContent::Var { index } => {
-                debug_assert_eq!(index, 0);
-                let offset = self.offset.expect(
-                    "Cannot have a variable as a leaf of a tree with no minimum index",
-                );
-                TypeContent::Var { index: index + offset }
+    pub fn to_content(&self) -> TypeContent {
+        match &*self.data.inner {
+            &TypeDataInner::Var { index } => {
+                TypeContent::Var {
+                    free: self.free,
+                    index,
+                }
             }
 
-            &TypeContent::Quantified {
+            &TypeDataInner::Quantified {
                 quantifier,
                 ref kind,
                 ref body,
             } => {
-                debug_assert_eq!(body.offset, Some(0));
                 TypeContent::Quantified {
                     quantifier,
                     kind: kind.clone(),
                     body: Type {
-                        offset: add_offsets(body.offset, self.offset),
-                        content: body.content.clone(),
+                        free: self.free + 1,
+                        data: body.clone(),
                     },
                 }
             }
 
-            &TypeContent::Func {
+            &TypeDataInner::Func {
                 access,
                 ref arg,
                 ref ret,
             } => {
-                debug_assert!(arg.offset == Some(0) || ret.offset == Some(0));
                 TypeContent::Func {
                     access,
                     arg: Type {
-                        offset: add_offsets(arg.offset, self.offset),
-                        content: arg.content.clone(),
+                        free: self.free,
+                        data: arg.clone(),
                     },
                     ret: Type {
-                        offset: add_offsets(ret.offset, self.offset),
-                        content: ret.content.clone(),
+                        free: self.free,
+                        data: ret.clone(),
                     },
                 }
             }
 
-            &TypeContent::Pair {
+            &TypeDataInner::Pair {
                 ref left,
                 ref right,
             } => {
                 TypeContent::Pair {
                     left: Type {
-                        offset: add_offsets(left.offset, self.offset),
-                        content: left.content.clone(),
+                        free: self.free,
+                        data: left.clone(),
                     },
                     right: Type {
-                        offset: add_offsets(right.offset, self.offset),
-                        content: right.content.clone(),
+                        free: self.free,
+                        data: right.clone(),
                     },
                 }
             }
         }
     }
 
-    pub fn var_occurs(&self, index: usize) -> Occurrence {
-        if let Some(offset) = self.offset {
-            if index >= offset {
-                return Occurrence::PossiblyPresent;
-            }
+    fn increment_above(&self, index: usize, inc_by: usize) -> Self {
+        debug_assert!(index <= self.free);
+
+        if self.data.max_index <= index {
+            return Type {
+                free: self.free + inc_by,
+                data: self.data.clone(),
+            };
         }
-        Occurrence::CertainlyAbsent
+
+        let new_content = match self.to_content() {
+            TypeContent::Var {
+                free,
+                index: var_index,
+            } => {
+                if index <= var_index {
+                    TypeContent::Var {
+                        free: free + inc_by,
+                        index: var_index + inc_by,
+                    }
+                } else {
+                    TypeContent::Var {
+                        free: free + inc_by,
+                        index: var_index,
+                    }
+                }
+            }
+
+            TypeContent::Quantified {
+                quantifier,
+                kind,
+                body,
+            } => {
+                TypeContent::Quantified {
+                    quantifier,
+                    kind,
+                    body: body.increment_above(index, inc_by),
+                }
+            }
+
+            TypeContent::Func { access, arg, ret } => {
+                TypeContent::Func {
+                    access,
+                    arg: arg.increment_above(index, inc_by),
+                    ret: ret.increment_above(index, inc_by),
+                }
+            }
+
+            TypeContent::Pair { left, right } => {
+                TypeContent::Pair {
+                    left: left.increment_above(index, inc_by),
+                    right: right.increment_above(index, inc_by),
+                }
+            }
+        };
+
+        Type::from_content(new_content)
     }
 
-    pub fn decrement_above(self, index: usize) -> Type<Free> {
-        if let Some(offset) = self.offset {
-            if index > offset {
-                let new_content = match self.to_content() {
-                    TypeContent::Free { free: _ } => {
-                        unreachable!("A free variable should never have a minimum index");
-                    }
+    fn increment_bound(&self, inc_by: usize) -> Self {
+        self.increment_above(self.free, inc_by)
+    }
 
-                    TypeContent::Var { index: var_index } => {
-                        debug_assert_eq!(var_index, offset);
-                        TypeContent::Var { index: var_index - 1 }
-                    }
+    pub fn accomodate_free(&self, new_free: usize) -> Self {
+        assert!(self.free <= new_free);
+        self.increment_bound(new_free - self.free)
+    }
 
-                    TypeContent::Quantified {
-                        quantifier,
-                        kind,
-                        body,
-                    } => {
-                        TypeContent::Quantified {
-                            quantifier,
-                            kind,
-                            body: body.decrement_above(index),
-                        }
-                    }
+    pub fn subst(&self, start_index: usize, replacements: &[Type]) -> Self {
+        assert!(start_index + replacements.len() <= self.free);
+        for replacement in replacements {
+            // TODO: Assess whether or not this check is actually necessary or desireable
+            assert_eq!(replacement.free, self.free, "Free variables do not match");
+        }
+        self.subst_inner(start_index, replacements)
+    }
 
-                    TypeContent::Func { access, arg, ret } => {
-                        TypeContent::Func {
-                            access,
-                            arg: arg.decrement_above(index),
-                            ret: ret.decrement_above(index),
-                        }
-                    }
+    fn subst_inner(&self, start_index: usize, replacements: &[Type]) -> Self {
+        if self.data.max_index <= start_index {
+            return Type {
+                free: self.free - replacements.len(),
+                data: self.data.clone(),
+            };
+        }
 
-                    TypeContent::Pair { left, right } => {
-                        TypeContent::Pair {
-                            left: left.decrement_above(index),
-                            right: right.decrement_above(index),
-                        }
-                    }
-                };
-                Type::from_content(new_content)
-            } else if index < offset {
-                Type {
-                    offset: Some(offset - 1),
-                    content: self.content,
+        match self.to_content() {
+            TypeContent::Var { free, index } => {
+                let new_free = free - replacements.len();
+                if start_index + replacements.len() <= index {
+                    Type::from_content(TypeContent::Var {
+                        free: new_free,
+                        index: index - replacements.len(),
+                    })
+                } else if index < start_index {
+                    Type::from_content(TypeContent::Var {
+                        free: new_free,
+                        index,
+                    })
+                } else {
+                    // index lies inside substitution range
+                    debug_assert!(start_index <= index && index < start_index + replacements.len());
+                    let replacement = &replacements[index - start_index];
+                    replacement.accomodate_free(new_free)
                 }
-            } else {
-                panic!("`decrement_above` given a variable which occurs in the type");
             }
-        } else {
-            self
+
+            TypeContent::Quantified {
+                quantifier,
+                kind,
+                body,
+            } => {
+                Type::from_content(TypeContent::Quantified {
+                    quantifier,
+                    kind,
+                    body: body.subst_inner(start_index, replacements),
+                })
+            }
+
+            TypeContent::Func { access, arg, ret } => {
+                Type::from_content(TypeContent::Func {
+                    access,
+                    arg: arg.subst_inner(start_index, replacements),
+                    ret: ret.subst_inner(start_index, replacements),
+                })
+            }
+
+            TypeContent::Pair { left, right } => {
+                Type::from_content(TypeContent::Pair {
+                    left: left.subst_inner(start_index, replacements),
+                    right: right.subst_inner(start_index, replacements),
+                })
+            }
         }
     }
 }

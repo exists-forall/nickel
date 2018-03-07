@@ -2,31 +2,19 @@ use std::rc::Rc;
 
 use super::types::*;
 
-pub enum Expr<Free> {
+pub enum Expr {
     Var { index: usize },
 
-    AbsType { kind: Kind, body: Rc<Expr<Free>> },
+    AbsType { kind: Kind, body: Rc<Expr> },
     AbsVar {
         access: FuncAccess,
-        arg_type: Type<Free>,
-        body: Rc<Expr<Free>>,
+        arg_type: Type,
+        body: Rc<Expr>,
     },
 
-    AppType {
-        expr: Rc<Expr<Free>>,
-        arg: Type<Free>,
-    },
-    AppVar {
-        expr: Rc<Expr<Free>>,
-        arg: Rc<Expr<Free>>,
-    },
+    AppType { expr: Rc<Expr>, arg: Type },
+    AppVar { expr: Rc<Expr>, arg: Rc<Expr> },
 
-    LetVar {
-        expr: Rc<Expr<Free>>,
-        body: Rc<Expr<Free>>,
-    },
-    LetPair {
-        expr: Rc<Expr<Free>>,
-        body: Rc<Expr<Free>>,
-    },
+    LetVar { expr: Rc<Expr>, body: Rc<Expr> },
+    LetPair { expr: Rc<Expr>, body: Rc<Expr> },
 }
