@@ -217,10 +217,12 @@ impl<Free: Clone> Type<Free> {
                     TypeContent::Free { free: _ } => {
                         unreachable!("A free variable should never have a minimum index");
                     }
+
                     TypeContent::Var { index: var_index } => {
                         debug_assert_eq!(var_index, offset);
                         TypeContent::Var { index: var_index - 1 }
                     }
+
                     TypeContent::Quantified {
                         quantifier,
                         kind,
@@ -232,6 +234,7 @@ impl<Free: Clone> Type<Free> {
                             body: body.decrement_above(index),
                         }
                     }
+
                     TypeContent::Func { access, arg, ret } => {
                         TypeContent::Func {
                             access,
@@ -239,6 +242,7 @@ impl<Free: Clone> Type<Free> {
                             ret: ret.decrement_above(index),
                         }
                     }
+
                     TypeContent::Pair { left, right } => {
                         TypeContent::Pair {
                             left: left.decrement_above(index),
