@@ -70,6 +70,12 @@ fn remove_common(off1: &mut Option<usize>, off2: &mut Option<usize>) -> Option<u
     common
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Occurrence {
+    CertainlyAbsent,
+    PossiblyPresent,
+}
+
 impl<Free: Clone> Type<Free> {
     pub fn from_content(content: TypeContent<Free>) -> Self {
         match content {
@@ -192,6 +198,65 @@ impl<Free: Clone> Type<Free> {
                     },
                 }
             }
+        }
+    }
+
+    pub fn var_occurs(&self, index: usize) -> Occurrence {
+        if let Some(offset) = self.offset {
+            if index >= offset {
+                return Occurrence::PossiblyPresent;
+            }
+        }
+        Occurrence::CertainlyAbsent
+    }
+
+    pub fn decrement_above(self, index: usize) -> Type<Free> {
+        if let Some(offset) = self.offset {
+            if index > offset {
+                let new_content = match self.to_content() {
+                    TypeContent::Free { free: _ } => {
+                        unreachable!("A free variable should never have a minimum index");
+                    }
+                    TypeContent::Var { index: var_index } => {
+                        debug_assert_eq!(var_index, offset);
+                        TypeContent::Var { index: var_index - 1 }
+                    }
+                    TypeContent::Quantified {
+                        quantifier,
+                        kind,
+                        body,
+                    } => {
+                        TypeContent::Quantified {
+                            quantifier,
+                            kind,
+                            body: body.decrement_above(index),
+                        }
+                    }
+                    TypeContent::Func { access, arg, ret } => {
+                        TypeContent::Func {
+                            access,
+                            arg: arg.decrement_above(index),
+                            ret: ret.decrement_above(index),
+                        }
+                    }
+                    TypeContent::Pair { left, right } => {
+                        TypeContent::Pair {
+                            left: left.decrement_above(index),
+                            right: right.decrement_above(index),
+                        }
+                    }
+                };
+                Type::from_content(new_content)
+            } else if index < offset {
+                Type {
+                    offset: Some(offset - 1),
+                    content: self.content,
+                }
+            } else {
+                panic!("`decrement_above` given a variable which occurs in the type");
+            }
+        } else {
+            self
         }
     }
 }
