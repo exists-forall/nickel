@@ -260,13 +260,17 @@ impl Type {
         self.increment_bound(new_free - self.free)
     }
 
-    pub fn subst(&self, start_index: usize, replacements: &[Type]) -> Self {
-        assert!(start_index + replacements.len() <= self.free);
+    pub fn subst(&self, replacements: &[Type]) -> Self {
+        assert!(replacements.len() <= self.free);
         for replacement in replacements {
             // TODO: Assess whether or not this check is actually necessary or desireable
-            assert_eq!(replacement.free, self.free, "Free variables do not match");
+            assert_eq!(
+                replacement.free,
+                self.free - replacements.len(),
+                "Free variables do not match"
+            );
         }
-        self.subst_inner(start_index, replacements)
+        self.subst_inner(self.free - replacements.len(), replacements)
     }
 
     fn subst_inner(&self, start_index: usize, replacements: &[Type]) -> Self {
@@ -505,6 +509,78 @@ mod test {
         assert_eq!(
             pair(var(2, 0), var(2, 1)).accomodate_free(4),
             pair(var(4, 0), var(4, 1))
+        );
+    }
+
+    #[test]
+    fn subst_simple() {
+        assert_eq!(var(2, 0).subst(&[var(1, 0)]), var(1, 0));
+
+        assert_eq!(var(2, 1).subst(&[var(1, 0)]), var(1, 0));
+
+        assert_eq!(
+            pair(pair(var(4, 1), var(4, 2)), var(4, 3)).subst(&[var(2, 0), var(2, 1)]),
+            pair(pair(var(2, 1), var(2, 0)), var(2, 1))
+        );
+
+        assert_eq!(
+            pair(pair(var(4, 1), var(4, 2)), var(4, 3)).subst(
+                &[
+                    pair(
+                        var(2, 0),
+                        var(2, 0),
+                    ),
+                    var(2, 1),
+                ],
+            ),
+            pair(pair(var(2, 1), pair(var(2, 0), var(2, 0))), var(2, 1))
+        );
+
+        assert_eq!(
+            func(Many, func(Once, var(4, 1), var(4, 2)), var(4, 3))
+                .subst(&[pair(var(2, 0), var(2, 0)), var(2, 1)]),
+            func(
+                Many,
+                func(Once, var(2, 1), pair(var(2, 0), var(2, 0))),
+                var(2, 1),
+            )
+        );
+    }
+
+    #[test]
+    fn subst_quant() {
+        assert_eq!(
+            quant(ForAll, Kind::Type, pair(var(3, 1), var(3, 2)))
+                .subst(&[pair(var(1, 0), var(1, 0))]),
+            quant(
+                ForAll,
+                Kind::Type,
+                pair(pair(var(2, 0), var(2, 0)), var(2, 1)),
+            )
+        );
+
+        assert_eq!(
+            pair(var(2, 0), var(2, 1)).subst(&[quant(ForAll, Kind::Type, var(2, 1))]),
+            pair(var(1, 0), quant(ForAll, Kind::Type, var(2, 1)))
+        );
+
+        assert_eq!(
+            quant(
+                ForAll,
+                Kind::Type,
+                pair(var(3, 0), pair(var(3, 1), var(3, 2))),
+            ).subst(&[quant(ForAll, Kind::Type, pair(var(2, 0), var(2, 1)))]),
+            quant(
+                ForAll,
+                Kind::Type,
+                pair(
+                    var(2, 0),
+                    pair(
+                        quant(ForAll, Kind::Type, pair(var(3, 0), var(3, 2))),
+                        var(2, 1),
+                    ),
+                ),
+            )
         );
     }
 }
