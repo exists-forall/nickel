@@ -65,6 +65,10 @@ pub struct Type {
 }
 
 impl Type {
+    pub fn free(&self) -> usize {
+        self.free
+    }
+
     pub fn from_content(content: TypeContent) -> Self {
         match content {
             TypeContent::Var { free, index } => {
@@ -321,5 +325,186 @@ impl Type {
                 })
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    // Convenience functions
+
+    use super::*;
+    use super::FuncAccess::*;
+    use super::Quantifier::*;
+
+    fn var(free: usize, index: usize) -> Type {
+        Type::from_content(TypeContent::Var { free, index })
+    }
+
+    fn quant(quantifier: Quantifier, kind: Kind, body: Type) -> Type {
+        Type::from_content(TypeContent::Quantified {
+            quantifier,
+            kind,
+            body,
+        })
+    }
+
+    fn func(access: FuncAccess, arg: Type, ret: Type) -> Type {
+        Type::from_content(TypeContent::Func { access, arg, ret })
+    }
+
+    fn pair(left: Type, right: Type) -> Type {
+        Type::from_content(TypeContent::Pair { left, right })
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_var_1() {
+        var(0, 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_var_2() {
+        var(1, 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_var_3() {
+        var(1, 2);
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_quant() {
+        quant(ForAll, Kind::Type, quant(ForAll, Kind::Type, var(1, 0)));
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_func() {
+        func(Many, var(1, 0), var(2, 0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_pair() {
+        pair(var(1, 0), var(2, 0));
+    }
+
+    #[test]
+    fn free_var() {
+        assert_eq!(var(1, 0).free(), 1);
+        assert_eq!(var(10, 5).free(), 10);
+    }
+
+    #[test]
+    fn free_quant() {
+        assert_eq!(quant(ForAll, Kind::Type, var(1, 0)).free(), 0);
+        assert_eq!(quant(ForAll, Kind::Type, var(2, 0)).free(), 1);
+        assert_eq!(quant(ForAll, Kind::Type, var(3, 2)).free(), 2);
+
+        assert_eq!(quant(Exists, Kind::Type, var(1, 0)).free(), 0);
+        assert_eq!(quant(Exists, Kind::Type, var(2, 0)).free(), 1);
+        assert_eq!(quant(Exists, Kind::Type, var(3, 2)).free(), 2);
+
+        assert_eq!(
+            quant(ForAll, Kind::Type, quant(ForAll, Kind::Type, var(2, 1))).free(),
+            0
+        );
+        assert_eq!(
+            quant(ForAll, Kind::Type, quant(ForAll, Kind::Type, var(5, 1))).free(),
+            3
+        );
+    }
+
+    #[test]
+    fn free_func() {
+        assert_eq!(func(Many, var(2, 0), var(2, 1)).free(), 2);
+        assert_eq!(func(Once, var(4, 3), var(4, 0)).free(), 4);
+    }
+
+    #[test]
+    fn free_pair() {
+        assert_eq!(pair(var(2, 0), var(2, 1)).free(), 2);
+        assert_eq!(pair(var(4, 3), var(4, 0)).free(), 4);
+    }
+
+    #[test]
+    fn accomodate_free_var() {
+        assert_eq!(var(1, 0).accomodate_free(1), var(1, 0));
+        assert_eq!(var(1, 0).accomodate_free(2), var(2, 0));
+        assert_eq!(var(2, 0).accomodate_free(4), var(4, 0));
+        assert_eq!(var(2, 1).accomodate_free(4), var(4, 1));
+    }
+
+    #[test]
+    fn accomodate_free_quant() {
+        assert_eq!(
+            quant(ForAll, Kind::Type, var(1, 0)).accomodate_free(0),
+            quant(ForAll, Kind::Type, var(1, 0))
+        );
+
+        assert_eq!(
+            quant(ForAll, Kind::Type, var(1, 0)).accomodate_free(3),
+            quant(ForAll, Kind::Type, var(4, 3))
+        );
+
+        assert_eq!(
+            quant(ForAll, Kind::Type, var(2, 0)).accomodate_free(1),
+            quant(ForAll, Kind::Type, var(2, 0))
+        );
+
+        assert_eq!(
+            quant(ForAll, Kind::Type, var(2, 0)).accomodate_free(5),
+            quant(ForAll, Kind::Type, var(6, 0))
+        );
+
+        assert_eq!(
+            quant(ForAll, Kind::Type, var(2, 1)).accomodate_free(1),
+            quant(ForAll, Kind::Type, var(2, 1))
+        );
+
+        assert_eq!(
+            quant(ForAll, Kind::Type, var(2, 1)).accomodate_free(5),
+            quant(ForAll, Kind::Type, var(6, 5))
+        );
+
+        assert_eq!(
+            quant(
+                ForAll,
+                Kind::Type,
+                quant(
+                    ForAll,
+                    Kind::Type,
+                    pair(pair(var(3, 0), var(3, 1)), var(3, 2)),
+                ),
+            ).accomodate_free(2),
+            quant(
+                ForAll,
+                Kind::Type,
+                quant(
+                    ForAll,
+                    Kind::Type,
+                    pair(pair(var(4, 0), var(4, 2)), var(4, 3)),
+                ),
+            )
+        );
+    }
+
+    #[test]
+    fn accomodate_free_func() {
+        assert_eq!(
+            func(Many, var(2, 0), var(2, 1)).accomodate_free(4),
+            func(Many, var(4, 0), var(4, 1))
+        );
+    }
+
+    #[test]
+    fn accomodate_free_pair() {
+        assert_eq!(
+            pair(var(2, 0), var(2, 1)).accomodate_free(4),
+            pair(var(4, 0), var(4, 1))
+        );
     }
 }
