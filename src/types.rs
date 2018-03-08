@@ -21,55 +21,60 @@ pub enum FuncAccess {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum TypeDataInner {
+enum TypeDataInner<Name> {
     Var { index: usize },
     Quantified {
         quantifier: Quantifier,
+        name: Name,
         kind: Kind,
-        body: TypeData,
+        body: TypeData<Name>,
     },
     Func {
         access: FuncAccess,
-        arg: TypeData,
-        ret: TypeData,
+        arg: TypeData<Name>,
+        ret: TypeData<Name>,
     },
-    Pair { left: TypeData, right: TypeData },
+    Pair {
+        left: TypeData<Name>,
+        right: TypeData<Name>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct TypeData {
+struct TypeData<Name> {
     max_index: usize, // exclusive upper bound
-    inner: Rc<TypeDataInner>,
+    inner: Rc<TypeDataInner<Name>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TypeContent {
+pub enum TypeContent<Name> {
     Var { free: usize, index: usize },
     Quantified {
         quantifier: Quantifier,
+        name: Name,
         kind: Kind,
-        body: Type,
+        body: Type<Name>,
     },
     Func {
         access: FuncAccess,
-        arg: Type,
-        ret: Type,
+        arg: Type<Name>,
+        ret: Type<Name>,
     },
-    Pair { left: Type, right: Type },
+    Pair { left: Type<Name>, right: Type<Name> },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Type {
+pub struct Type<Name> {
     free: usize,
-    data: TypeData,
+    data: TypeData<Name>,
 }
 
-impl Type {
+impl<Name: Clone> Type<Name> {
     pub fn free(&self) -> usize {
         self.free
     }
 
-    pub fn from_content(content: TypeContent) -> Self {
+    pub fn from_content(content: TypeContent<Name>) -> Self {
         match content {
             TypeContent::Var { free, index } => {
                 assert!(index < free);
@@ -84,6 +89,7 @@ impl Type {
 
             TypeContent::Quantified {
                 quantifier,
+                name,
                 kind,
                 body,
             } => {
@@ -94,6 +100,7 @@ impl Type {
                         max_index: body.data.max_index,
                         inner: Rc::new(TypeDataInner::Quantified {
                             quantifier,
+                            name,
                             kind,
                             body: body.data,
                         }),
@@ -132,7 +139,7 @@ impl Type {
         }
     }
 
-    pub fn to_content(&self) -> TypeContent {
+    pub fn to_content(&self) -> TypeContent<Name> {
         match &*self.data.inner {
             &TypeDataInner::Var { index } => {
                 TypeContent::Var {
@@ -143,11 +150,13 @@ impl Type {
 
             &TypeDataInner::Quantified {
                 quantifier,
+                ref name,
                 ref kind,
                 ref body,
             } => {
                 TypeContent::Quantified {
                     quantifier,
+                    name: name.clone(),
                     kind: kind.clone(),
                     body: Type {
                         free: self.free + 1,
@@ -222,11 +231,13 @@ impl Type {
 
             TypeContent::Quantified {
                 quantifier,
+                name,
                 kind,
                 body,
             } => {
                 TypeContent::Quantified {
                     quantifier,
+                    name,
                     kind,
                     body: body.increment_above(index, inc_by),
                 }
@@ -260,7 +271,7 @@ impl Type {
         self.increment_bound(new_free - self.free)
     }
 
-    pub fn subst(&self, replacements: &[Type]) -> Self {
+    pub fn subst(&self, replacements: &[Type<Name>]) -> Self {
         assert!(replacements.len() <= self.free);
         for replacement in replacements {
             // TODO: Assess whether or not this check is actually necessary or desireable
@@ -273,7 +284,7 @@ impl Type {
         self.subst_inner(self.free - replacements.len(), replacements)
     }
 
-    fn subst_inner(&self, start_index: usize, replacements: &[Type]) -> Self {
+    fn subst_inner(&self, start_index: usize, replacements: &[Type<Name>]) -> Self {
         if self.data.max_index <= start_index {
             return Type {
                 free: self.free - replacements.len(),
@@ -304,11 +315,13 @@ impl Type {
 
             TypeContent::Quantified {
                 quantifier,
+                name,
                 kind,
                 body,
             } => {
                 Type::from_content(TypeContent::Quantified {
                     quantifier,
+                    name,
                     kind,
                     body: body.subst_inner(start_index, replacements),
                 })
@@ -340,23 +353,24 @@ mod test {
     use super::FuncAccess::*;
     use super::Quantifier::*;
 
-    fn var(free: usize, index: usize) -> Type {
+    fn var(free: usize, index: usize) -> Type<()> {
         Type::from_content(TypeContent::Var { free, index })
     }
 
-    fn quant(quantifier: Quantifier, kind: Kind, body: Type) -> Type {
+    fn quant(quantifier: Quantifier, kind: Kind, body: Type<()>) -> Type<()> {
         Type::from_content(TypeContent::Quantified {
             quantifier,
+            name: (),
             kind,
             body,
         })
     }
 
-    fn func(access: FuncAccess, arg: Type, ret: Type) -> Type {
+    fn func(access: FuncAccess, arg: Type<()>, ret: Type<()>) -> Type<()> {
         Type::from_content(TypeContent::Func { access, arg, ret })
     }
 
-    fn pair(left: Type, right: Type) -> Type {
+    fn pair(left: Type<()>, right: Type<()>) -> Type<()> {
         Type::from_content(TypeContent::Pair { left, right })
     }
 
