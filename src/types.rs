@@ -5,7 +5,10 @@ pub enum Kind {
     Type,
     Place,
     Version,
-    Cons(Rc<Kind>, Rc<Kind>),
+    Constructor {
+        params: Rc<Vec<Kind>>,
+        result: Rc<Kind>,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
