@@ -369,6 +369,26 @@ mod test {
         })
     }
 
+    fn func_forall(
+        access: FuncAccess,
+        param_kinds: &[Kind],
+        arg: Type<()>,
+        ret: Type<()>,
+    ) -> Type<()> {
+        Type::from_content(TypeContent::Func {
+            access,
+            params: Rc::new(
+                param_kinds
+                    .iter()
+                    .cloned()
+                    .map(|kind| TypeParam { name: (), kind })
+                    .collect(),
+            ),
+            arg,
+            ret,
+        })
+    }
+
     fn pair(left: Type<()>, right: Type<()>) -> Type<()> {
         Type::from_content(TypeContent::Pair { left, right })
     }
@@ -405,6 +425,12 @@ mod test {
 
     #[test]
     #[should_panic]
+    fn invalid_func_forall() {
+        func_forall(Many, &[Kind::Type, Kind::Type], var(1, 0), var(1, 0));
+    }
+
+    #[test]
+    #[should_panic]
     fn invalid_pair() {
         pair(var(1, 0), var(2, 0));
     }
@@ -433,6 +459,24 @@ mod test {
     fn free_func() {
         assert_eq!(func(Many, var(2, 0), var(2, 1)).free(), 2);
         assert_eq!(func(Once, var(4, 3), var(4, 0)).free(), 4);
+    }
+
+    #[test]
+    fn free_func_forall() {
+        assert_eq!(
+            func_forall(Many, &[Kind::Type], var(1, 0), var(1, 0)).free(),
+            0
+        );
+
+        assert_eq!(
+            func_forall(Many, &[Kind::Type], var(2, 0), var(2, 1)).free(),
+            1
+        );
+
+        assert_eq!(
+            func_forall(Many, &[Kind::Type, Kind::Type], var(2, 0), var(2, 1)).free(),
+            0
+        );
     }
 
     #[test]
@@ -502,6 +546,39 @@ mod test {
     }
 
     #[test]
+    fn accomodate_free_func_forall() {
+        assert_eq!(
+            func_forall(Many, &[Kind::Type], var(2, 0), var(2, 1)).accomodate_free(2),
+            func_forall(Many, &[Kind::Type], var(3, 0), var(3, 2))
+        );
+
+        assert_eq!(
+            func_forall(
+                Many,
+                &[Kind::Type],
+                pair(var(2, 0), var(2, 1)),
+                func_forall(
+                    Many,
+                    &[Kind::Type, Kind::Type],
+                    pair(var(4, 0), var(4, 1)),
+                    pair(var(4, 2), var(4, 3)),
+                ),
+            ).accomodate_free(3),
+            func_forall(
+                Many,
+                &[Kind::Type],
+                pair(var(4, 0), var(4, 3)),
+                func_forall(
+                    Many,
+                    &[Kind::Type, Kind::Type],
+                    pair(var(6, 0), var(6, 3)),
+                    pair(var(6, 4), var(6, 5)),
+                ),
+            )
+        );
+    }
+
+    #[test]
     fn accomodate_free_pair() {
         assert_eq!(
             pair(var(2, 0), var(2, 1)).accomodate_free(4),
@@ -565,6 +642,41 @@ mod test {
                     var(2, 0),
                     pair(exists(Kind::Type, pair(var(3, 0), var(3, 2))), var(2, 1)),
                 ),
+            )
+        );
+    }
+
+    #[test]
+    fn subst_func_forall() {
+        assert_eq!(
+            func_forall(Many, &[Kind::Type], var(3, 1), var(3, 2)).subst(&[var(1, 0)]),
+            func_forall(Many, &[Kind::Type], var(2, 0), var(2, 1))
+        );
+
+        assert_eq!(
+            func_forall(Many, &[Kind::Type], var(3, 2), var(3, 1)).subst(&[var(1, 0)]),
+            func_forall(Many, &[Kind::Type], var(2, 1), var(2, 0))
+        );
+
+        assert_eq!(
+            func_forall(Many, &[Kind::Type], var(2, 0), var(2, 1))
+                .subst(&[func_forall(Many, &[Kind::Type], var(1, 0), var(1, 0))]),
+            func_forall(
+                Many,
+                &[Kind::Type],
+                func_forall(Many, &[Kind::Type], var(2, 1), var(2, 1)),
+                var(1, 0),
+            )
+        );
+
+        assert_eq!(
+            func_forall(Many, &[Kind::Type], var(3, 1), var(3, 2))
+                .subst(&[func_forall(Many, &[Kind::Type], var(2, 0), var(2, 1))]),
+            func_forall(
+                Many,
+                &[Kind::Type],
+                func_forall(Many, &[Kind::Type], var(3, 0), var(3, 2)),
+                var(2, 1),
             )
         );
     }
