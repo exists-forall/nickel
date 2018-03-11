@@ -24,6 +24,10 @@ impl Names {
         }
     }
 
+    pub fn index_count(&self) -> usize {
+        self.names.len()
+    }
+
     pub fn push_scope(&mut self) {
         self.scopes.push(Scope {
             index_count: self.names.len(),
@@ -53,7 +57,7 @@ impl Names {
             self.counts.insert(name.clone(), curr_count + 1);
             let new_name = Rc::new({
                 let mut owned: String = (*name).clone();
-                write!(&mut owned, "#{}", curr_count);
+                write!(&mut owned, "#{}", curr_count).unwrap();
                 owned
             });
             self.names.push(new_name.clone());
@@ -70,5 +74,89 @@ impl Names {
 
     pub fn get_name(&self, index: usize) -> Rc<String> {
         self.names[index].clone()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn add_simple() {
+        let mut names = Names::new();
+        assert_eq!(names.index_count(), 0);
+
+        assert_eq!(*names.add_name(Rc::new("foo".to_owned())), "foo");
+        assert_eq!(*names.get_name(0), "foo");
+        assert_eq!(names.index_count(), 1);
+
+        assert_eq!(*names.add_name(Rc::new("bar".to_owned())), "bar");
+        assert_eq!(*names.get_name(0), "foo");
+        assert_eq!(*names.get_name(1), "bar");
+        assert_eq!(names.index_count(), 2);
+    }
+
+    #[test]
+    fn scoped() {
+        let mut names = Names::new();
+
+        assert_eq!(*names.add_name(Rc::new("foo".to_owned())), "foo");
+
+        names.push_scope();
+        assert_eq!(*names.get_name(0), "foo");
+        assert_eq!(*names.add_name(Rc::new("bar".to_owned())), "bar");
+        assert_eq!(*names.get_name(1), "bar");
+        names.pop_scope();
+
+        assert_eq!(*names.get_name(0), "foo");
+
+        assert_eq!(*names.add_name(Rc::new("baz".to_owned())), "baz");
+        assert_eq!(*names.get_name(0), "foo");
+        assert_eq!(*names.get_name(1), "baz");
+    }
+
+    #[test]
+    fn collision() {
+        let mut names = Names::new();
+
+        assert_eq!(*names.add_name(Rc::new("foo".to_owned())), "foo");
+        assert_eq!(*names.add_name(Rc::new("foo".to_owned())), "foo#1");
+        assert_eq!(*names.add_name(Rc::new("bar".to_owned())), "bar");
+
+        assert_eq!(*names.get_name(0), "foo");
+        assert_eq!(*names.get_name(1), "foo#1");
+        assert_eq!(*names.get_name(2), "bar");
+
+        assert_eq!(*names.add_name(Rc::new("foo".to_owned())), "foo#2");
+        assert_eq!(*names.get_name(0), "foo");
+        assert_eq!(*names.get_name(1), "foo#1");
+        assert_eq!(*names.get_name(2), "bar");
+        assert_eq!(*names.get_name(3), "foo#2");
+    }
+
+    #[test]
+    fn scoped_collision() {
+        let mut names = Names::new();
+
+        assert_eq!(*names.add_name(Rc::new("foo".to_owned())), "foo");
+        assert_eq!(*names.add_name(Rc::new("foo".to_owned())), "foo#1");
+
+        names.push_scope();
+        assert_eq!(*names.add_name(Rc::new("bar".to_owned())), "bar");
+        assert_eq!(*names.add_name(Rc::new("foo".to_owned())), "foo#2");
+        assert_eq!(*names.get_name(0), "foo");
+        assert_eq!(*names.get_name(1), "foo#1");
+        assert_eq!(*names.get_name(2), "bar");
+        assert_eq!(*names.get_name(3), "foo#2");
+        names.pop_scope();
+
+        assert_eq!(*names.add_name(Rc::new("baz".to_owned())), "baz");
+        assert_eq!(*names.add_name(Rc::new("foo".to_owned())), "foo#2");
+        assert_eq!(*names.add_name(Rc::new("bar".to_owned())), "bar");
+        assert_eq!(*names.get_name(0), "foo");
+        assert_eq!(*names.get_name(1), "foo#1");
+        assert_eq!(*names.get_name(2), "baz");
+        assert_eq!(*names.get_name(3), "foo#2");
+        assert_eq!(*names.get_name(4), "bar");
     }
 }
