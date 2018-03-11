@@ -40,6 +40,11 @@ enum TypeDataInner<Name> {
         left: TypeData<Name>,
         right: TypeData<Name>,
     },
+    /// Represents both partial and (segments of) total type applications
+    App {
+        constructor: TypeData<Name>,
+        param: TypeData<Name>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -62,6 +67,10 @@ pub enum TypeContent<Name> {
         ret: Type<Name>,
     },
     Pair { left: Type<Name>, right: Type<Name> },
+    App {
+        constructor: Type<Name>,
+        param: Type<Name>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -140,6 +149,20 @@ impl<Name: Clone> Type<Name> {
                     },
                 }
             }
+
+            TypeContent::App { constructor, param } => {
+                assert_eq!(constructor.free, param.free, "Free variables do not match");
+                Type {
+                    free: constructor.free,
+                    data: TypeData {
+                        max_index: constructor.data.max_index.max(param.data.max_index),
+                        inner: Rc::new(TypeDataInner::App {
+                            constructor: constructor.data,
+                            param: param.data,
+                        }),
+                    },
+                }
+            }
         }
     }
 
@@ -200,6 +223,22 @@ impl<Name: Clone> Type<Name> {
                     },
                 }
             }
+
+            &TypeDataInner::App {
+                ref constructor,
+                ref param,
+            } => {
+                TypeContent::App {
+                    constructor: Type {
+                        free: self.free,
+                        data: constructor.clone(),
+                    },
+                    param: Type {
+                        free: self.free,
+                        data: param.clone(),
+                    },
+                }
+            }
         }
     }
 
@@ -256,6 +295,13 @@ impl<Name: Clone> Type<Name> {
                 TypeContent::Pair {
                     left: left.increment_above(index, inc_by),
                     right: right.increment_above(index, inc_by),
+                }
+            }
+
+            TypeContent::App { constructor, param } => {
+                TypeContent::App {
+                    constructor: constructor.increment_above(index, inc_by),
+                    param: param.increment_above(index, inc_by),
                 }
             }
         };
@@ -339,6 +385,13 @@ impl<Name: Clone> Type<Name> {
                 Type::from_content(TypeContent::Pair {
                     left: left.subst_inner(start_index, replacements),
                     right: right.subst_inner(start_index, replacements),
+                })
+            }
+
+            TypeContent::App { constructor, param } => {
+                Type::from_content(TypeContent::App {
+                    constructor: constructor.subst_inner(start_index, replacements),
+                    param: param.subst_inner(start_index, replacements),
                 })
             }
         }
