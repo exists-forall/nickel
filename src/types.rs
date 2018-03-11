@@ -9,28 +9,27 @@ pub enum Kind {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Quantifier {
-    ForAll,
-    Exists,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FuncAccess {
     Many,
     Once,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TypeParam<Name> {
+    pub name: Name,
+    pub kind: Kind,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum TypeDataInner<Name> {
     Var { index: usize },
-    Quantified {
-        quantifier: Quantifier,
-        name: Name,
-        kind: Kind,
+    Exists {
+        param: TypeParam<Name>,
         body: TypeData<Name>,
     },
     Func {
         access: FuncAccess,
+        params: Rc<Vec<TypeParam<Name>>>,
         arg: TypeData<Name>,
         ret: TypeData<Name>,
     },
@@ -49,14 +48,13 @@ struct TypeData<Name> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TypeContent<Name> {
     Var { free: usize, index: usize },
-    Quantified {
-        quantifier: Quantifier,
-        name: Name,
-        kind: Kind,
+    Exists {
+        param: TypeParam<Name>,
         body: Type<Name>,
     },
     Func {
         access: FuncAccess,
+        params: Rc<Vec<TypeParam<Name>>>,
         arg: Type<Name>,
         ret: Type<Name>,
     },
@@ -87,35 +85,38 @@ impl<Name: Clone> Type<Name> {
                 }
             }
 
-            TypeContent::Quantified {
-                quantifier,
-                name,
-                kind,
-                body,
-            } => {
+            TypeContent::Exists { param, body } => {
                 assert!(1 <= body.free, "Must have at least one free variable");
                 Type {
                     free: body.free - 1,
                     data: TypeData {
                         max_index: body.data.max_index,
-                        inner: Rc::new(TypeDataInner::Quantified {
-                            quantifier,
-                            name,
-                            kind,
+                        inner: Rc::new(TypeDataInner::Exists {
+                            param: param.clone(),
                             body: body.data,
                         }),
                     },
                 }
             }
 
-            TypeContent::Func { access, arg, ret } => {
+            TypeContent::Func {
+                access,
+                params,
+                arg,
+                ret,
+            } => {
                 assert_eq!(arg.free, ret.free, "Free variables do not match");
+                assert!(
+                    params.len() <= arg.free,
+                    "Must have at least {} free variables",
+                );
                 Type {
-                    free: arg.free,
+                    free: arg.free - params.len(),
                     data: TypeData {
                         max_index: arg.data.max_index.max(ret.data.max_index),
                         inner: Rc::new(TypeDataInner::Func {
                             access,
+                            params: params,
                             arg: arg.data,
                             ret: ret.data,
                         }),
@@ -148,16 +149,12 @@ impl<Name: Clone> Type<Name> {
                 }
             }
 
-            &TypeDataInner::Quantified {
-                quantifier,
-                ref name,
-                ref kind,
+            &TypeDataInner::Exists {
+                ref param,
                 ref body,
             } => {
-                TypeContent::Quantified {
-                    quantifier,
-                    name: name.clone(),
-                    kind: kind.clone(),
+                TypeContent::Exists {
+                    param: param.clone(),
                     body: Type {
                         free: self.free + 1,
                         data: body.clone(),
@@ -167,17 +164,19 @@ impl<Name: Clone> Type<Name> {
 
             &TypeDataInner::Func {
                 access,
+                ref params,
                 ref arg,
                 ref ret,
             } => {
                 TypeContent::Func {
                     access,
+                    params: params.clone(),
                     arg: Type {
-                        free: self.free,
+                        free: self.free + params.len(),
                         data: arg.clone(),
                     },
                     ret: Type {
-                        free: self.free,
+                        free: self.free + params.len(),
                         data: ret.clone(),
                     },
                 }
@@ -229,23 +228,22 @@ impl<Name: Clone> Type<Name> {
                 }
             }
 
-            TypeContent::Quantified {
-                quantifier,
-                name,
-                kind,
-                body,
-            } => {
-                TypeContent::Quantified {
-                    quantifier,
-                    name,
-                    kind,
+            TypeContent::Exists { param, body } => {
+                TypeContent::Exists {
+                    param,
                     body: body.increment_above(index, inc_by),
                 }
             }
 
-            TypeContent::Func { access, arg, ret } => {
+            TypeContent::Func {
+                access,
+                params,
+                arg,
+                ret,
+            } => {
                 TypeContent::Func {
                     access,
+                    params,
                     arg: arg.increment_above(index, inc_by),
                     ret: ret.increment_above(index, inc_by),
                 }
@@ -313,23 +311,22 @@ impl<Name: Clone> Type<Name> {
                 }
             }
 
-            TypeContent::Quantified {
-                quantifier,
-                name,
-                kind,
-                body,
-            } => {
-                Type::from_content(TypeContent::Quantified {
-                    quantifier,
-                    name,
-                    kind,
+            TypeContent::Exists { param, body } => {
+                Type::from_content(TypeContent::Exists {
+                    param,
                     body: body.subst_inner(start_index, replacements),
                 })
             }
 
-            TypeContent::Func { access, arg, ret } => {
+            TypeContent::Func {
+                access,
+                params,
+                arg,
+                ret,
+            } => {
                 Type::from_content(TypeContent::Func {
                     access,
+                    params,
                     arg: arg.subst_inner(start_index, replacements),
                     ret: ret.subst_inner(start_index, replacements),
                 })
@@ -351,23 +348,25 @@ mod test {
 
     use super::*;
     use super::FuncAccess::*;
-    use super::Quantifier::*;
 
     fn var(free: usize, index: usize) -> Type<()> {
         Type::from_content(TypeContent::Var { free, index })
     }
 
-    fn quant(quantifier: Quantifier, kind: Kind, body: Type<()>) -> Type<()> {
-        Type::from_content(TypeContent::Quantified {
-            quantifier,
-            name: (),
-            kind,
+    fn exists(kind: Kind, body: Type<()>) -> Type<()> {
+        Type::from_content(TypeContent::Exists {
+            param: TypeParam { name: (), kind },
             body,
         })
     }
 
     fn func(access: FuncAccess, arg: Type<()>, ret: Type<()>) -> Type<()> {
-        Type::from_content(TypeContent::Func { access, arg, ret })
+        Type::from_content(TypeContent::Func {
+            access,
+            params: Rc::new(Vec::new()),
+            arg,
+            ret,
+        })
     }
 
     fn pair(left: Type<()>, right: Type<()>) -> Type<()> {
@@ -394,8 +393,8 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn invalid_quant() {
-        quant(ForAll, Kind::Type, quant(ForAll, Kind::Type, var(1, 0)));
+    fn invalid_exists() {
+        exists(Kind::Type, exists(Kind::Type, var(1, 0)));
     }
 
     #[test]
@@ -417,23 +416,17 @@ mod test {
     }
 
     #[test]
-    fn free_quant() {
-        assert_eq!(quant(ForAll, Kind::Type, var(1, 0)).free(), 0);
-        assert_eq!(quant(ForAll, Kind::Type, var(2, 0)).free(), 1);
-        assert_eq!(quant(ForAll, Kind::Type, var(3, 2)).free(), 2);
+    fn free_exists() {
+        assert_eq!(exists(Kind::Type, var(1, 0)).free(), 0);
+        assert_eq!(exists(Kind::Type, var(2, 0)).free(), 1);
+        assert_eq!(exists(Kind::Type, var(3, 2)).free(), 2);
 
-        assert_eq!(quant(Exists, Kind::Type, var(1, 0)).free(), 0);
-        assert_eq!(quant(Exists, Kind::Type, var(2, 0)).free(), 1);
-        assert_eq!(quant(Exists, Kind::Type, var(3, 2)).free(), 2);
+        assert_eq!(exists(Kind::Type, var(1, 0)).free(), 0);
+        assert_eq!(exists(Kind::Type, var(2, 0)).free(), 1);
+        assert_eq!(exists(Kind::Type, var(3, 2)).free(), 2);
 
-        assert_eq!(
-            quant(ForAll, Kind::Type, quant(ForAll, Kind::Type, var(2, 1))).free(),
-            0
-        );
-        assert_eq!(
-            quant(ForAll, Kind::Type, quant(ForAll, Kind::Type, var(5, 1))).free(),
-            3
-        );
+        assert_eq!(exists(Kind::Type, exists(Kind::Type, var(2, 1))).free(), 0);
+        assert_eq!(exists(Kind::Type, exists(Kind::Type, var(5, 1))).free(), 3);
     }
 
     #[test]
@@ -457,55 +450,45 @@ mod test {
     }
 
     #[test]
-    fn accomodate_free_quant() {
+    fn accomodate_free_exists() {
         assert_eq!(
-            quant(ForAll, Kind::Type, var(1, 0)).accomodate_free(0),
-            quant(ForAll, Kind::Type, var(1, 0))
+            exists(Kind::Type, var(1, 0)).accomodate_free(0),
+            exists(Kind::Type, var(1, 0))
         );
 
         assert_eq!(
-            quant(ForAll, Kind::Type, var(1, 0)).accomodate_free(3),
-            quant(ForAll, Kind::Type, var(4, 3))
+            exists(Kind::Type, var(1, 0)).accomodate_free(3),
+            exists(Kind::Type, var(4, 3))
         );
 
         assert_eq!(
-            quant(ForAll, Kind::Type, var(2, 0)).accomodate_free(1),
-            quant(ForAll, Kind::Type, var(2, 0))
+            exists(Kind::Type, var(2, 0)).accomodate_free(1),
+            exists(Kind::Type, var(2, 0))
         );
 
         assert_eq!(
-            quant(ForAll, Kind::Type, var(2, 0)).accomodate_free(5),
-            quant(ForAll, Kind::Type, var(6, 0))
+            exists(Kind::Type, var(2, 0)).accomodate_free(5),
+            exists(Kind::Type, var(6, 0))
         );
 
         assert_eq!(
-            quant(ForAll, Kind::Type, var(2, 1)).accomodate_free(1),
-            quant(ForAll, Kind::Type, var(2, 1))
+            exists(Kind::Type, var(2, 1)).accomodate_free(1),
+            exists(Kind::Type, var(2, 1))
         );
 
         assert_eq!(
-            quant(ForAll, Kind::Type, var(2, 1)).accomodate_free(5),
-            quant(ForAll, Kind::Type, var(6, 5))
+            exists(Kind::Type, var(2, 1)).accomodate_free(5),
+            exists(Kind::Type, var(6, 5))
         );
 
         assert_eq!(
-            quant(
-                ForAll,
+            exists(
                 Kind::Type,
-                quant(
-                    ForAll,
-                    Kind::Type,
-                    pair(pair(var(3, 0), var(3, 1)), var(3, 2)),
-                ),
+                exists(Kind::Type, pair(pair(var(3, 0), var(3, 1)), var(3, 2))),
             ).accomodate_free(2),
-            quant(
-                ForAll,
+            exists(
                 Kind::Type,
-                quant(
-                    ForAll,
-                    Kind::Type,
-                    pair(pair(var(4, 0), var(4, 2)), var(4, 3)),
-                ),
+                exists(Kind::Type, pair(pair(var(4, 0), var(4, 2)), var(4, 3))),
             )
         );
     }
@@ -562,37 +545,25 @@ mod test {
     }
 
     #[test]
-    fn subst_quant() {
+    fn subst_exists() {
         assert_eq!(
-            quant(ForAll, Kind::Type, pair(var(3, 1), var(3, 2)))
-                .subst(&[pair(var(1, 0), var(1, 0))]),
-            quant(
-                ForAll,
-                Kind::Type,
-                pair(pair(var(2, 0), var(2, 0)), var(2, 1)),
-            )
+            exists(Kind::Type, pair(var(3, 1), var(3, 2))).subst(&[pair(var(1, 0), var(1, 0))]),
+            exists(Kind::Type, pair(pair(var(2, 0), var(2, 0)), var(2, 1)))
         );
 
         assert_eq!(
-            pair(var(2, 0), var(2, 1)).subst(&[quant(ForAll, Kind::Type, var(2, 1))]),
-            pair(var(1, 0), quant(ForAll, Kind::Type, var(2, 1)))
+            pair(var(2, 0), var(2, 1)).subst(&[exists(Kind::Type, var(2, 1))]),
+            pair(var(1, 0), exists(Kind::Type, var(2, 1)))
         );
 
         assert_eq!(
-            quant(
-                ForAll,
-                Kind::Type,
-                pair(var(3, 0), pair(var(3, 1), var(3, 2))),
-            ).subst(&[quant(ForAll, Kind::Type, pair(var(2, 0), var(2, 1)))]),
-            quant(
-                ForAll,
+            exists(Kind::Type, pair(var(3, 0), pair(var(3, 1), var(3, 2))))
+                .subst(&[exists(Kind::Type, pair(var(2, 0), var(2, 1)))]),
+            exists(
                 Kind::Type,
                 pair(
                     var(2, 0),
-                    pair(
-                        quant(ForAll, Kind::Type, pair(var(3, 0), var(3, 2))),
-                        var(2, 1),
-                    ),
+                    pair(exists(Kind::Type, pair(var(3, 0), var(3, 2))), var(2, 1)),
                 ),
             )
         );
