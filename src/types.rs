@@ -449,6 +449,10 @@ mod test {
         Type::from_content(TypeContent::Pair { left, right })
     }
 
+    fn app(constructor: Type<()>, param: Type<()>) -> Type<()> {
+        Type::from_content(TypeContent::App { constructor, param })
+    }
+
     #[test]
     #[should_panic]
     fn invalid_var_1() {
@@ -489,6 +493,12 @@ mod test {
     #[should_panic]
     fn invalid_pair() {
         pair(var(1, 0), var(2, 0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_app() {
+        app(var(1, 0), var(2, 0));
     }
 
     #[test]
@@ -539,6 +549,12 @@ mod test {
     fn free_pair() {
         assert_eq!(pair(var(2, 0), var(2, 1)).free(), 2);
         assert_eq!(pair(var(4, 3), var(4, 0)).free(), 4);
+    }
+
+    #[test]
+    fn free_app() {
+        assert_eq!(app(var(2, 0), var(2, 1)).free(), 2);
+        assert_eq!(app(var(4, 3), var(4, 0)).free(), 4);
     }
 
     #[test]
@@ -643,6 +659,14 @@ mod test {
     }
 
     #[test]
+    fn accomodate_free_app() {
+        assert_eq!(
+            app(var(2, 0), var(2, 1)).accomodate_free(4),
+            app(var(4, 0), var(4, 1))
+        );
+    }
+
+    #[test]
     fn subst_simple() {
         assert_eq!(var(2, 0).subst(&[var(1, 0)]), var(1, 0));
 
@@ -651,6 +675,11 @@ mod test {
         assert_eq!(
             pair(pair(var(4, 1), var(4, 2)), var(4, 3)).subst(&[var(2, 0), var(2, 1)]),
             pair(pair(var(2, 1), var(2, 0)), var(2, 1))
+        );
+
+        assert_eq!(
+            app(app(var(4, 1), var(4, 2)), var(4, 3)).subst(&[var(2, 0), var(2, 1)]),
+            app(app(var(2, 1), var(2, 0)), var(2, 1))
         );
 
         assert_eq!(
