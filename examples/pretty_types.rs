@@ -65,7 +65,6 @@ fn main() {
     print_type(
         &mut names,
         Type::from_content(TypeContent::Func {
-            access: FuncAccess::Many,
             params: Rc::new(Vec::new()),
             arg: foo.clone(),
             ret: bar.clone(),
@@ -74,7 +73,6 @@ fn main() {
     print_type(
         &mut names,
         Type::from_content(TypeContent::Func {
-            access: FuncAccess::Many,
             params: Rc::new(Vec::new()),
             arg: Type::from_content(TypeContent::Pair {
                 left: foo.clone(),
@@ -86,7 +84,6 @@ fn main() {
     print_type(
         &mut names,
         Type::from_content(TypeContent::Func {
-            access: FuncAccess::Many,
             params: Rc::new(Vec::new()),
             arg: foo.clone(),
             ret: Type::from_content(TypeContent::Pair {
@@ -143,7 +140,6 @@ fn main() {
     print_type(
         &mut names,
         Type::from_content(TypeContent::Func {
-            access: FuncAccess::Many,
             params: Rc::new(vec![
                 TypeParam {
                     name: rc_str("x"),

@@ -7,7 +7,6 @@ pub enum Expr<TName> {
 
     AbsType { kind: Kind, body: Rc<Expr<TName>> },
     AbsVar {
-        access: FuncAccess,
         arg_type: Type<TName>,
         body: Rc<Expr<TName>>,
     },

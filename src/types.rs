@@ -11,12 +11,6 @@ pub enum Kind {
     },
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum FuncAccess {
-    Many,
-    Once,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeParam<Name> {
     pub name: Name,
@@ -31,7 +25,6 @@ enum TypeDataInner<Name> {
         body: TypeData<Name>,
     },
     Func {
-        access: FuncAccess,
         params: Rc<Vec<TypeParam<Name>>>,
         arg: TypeData<Name>,
         ret: TypeData<Name>,
@@ -61,7 +54,6 @@ pub enum TypeContent<Name> {
         body: Type<Name>,
     },
     Func {
-        access: FuncAccess,
         params: Rc<Vec<TypeParam<Name>>>,
         arg: Type<Name>,
         ret: Type<Name>,
@@ -111,12 +103,7 @@ impl<Name: Clone> Type<Name> {
                 }
             }
 
-            TypeContent::Func {
-                access,
-                params,
-                arg,
-                ret,
-            } => {
+            TypeContent::Func { params, arg, ret } => {
                 assert_eq!(arg.free, ret.free, "Free variables do not match");
                 assert!(
                     params.len() <= arg.free,
@@ -127,7 +114,6 @@ impl<Name: Clone> Type<Name> {
                     data: TypeData {
                         max_index: arg.data.max_index.max(ret.data.max_index),
                         inner: Rc::new(TypeDataInner::Func {
-                            access,
                             params: params,
                             arg: arg.data,
                             ret: ret.data,
@@ -189,13 +175,11 @@ impl<Name: Clone> Type<Name> {
             }
 
             &TypeDataInner::Func {
-                access,
                 ref params,
                 ref arg,
                 ref ret,
             } => {
                 TypeContent::Func {
-                    access,
                     params: params.clone(),
                     arg: Type {
                         free: self.free + params.len(),
@@ -277,14 +261,8 @@ impl<Name: Clone> Type<Name> {
                 }
             }
 
-            TypeContent::Func {
-                access,
-                params,
-                arg,
-                ret,
-            } => {
+            TypeContent::Func { params, arg, ret } => {
                 TypeContent::Func {
-                    access,
                     params,
                     arg: arg.increment_above(index, inc_by),
                     ret: ret.increment_above(index, inc_by),
@@ -367,14 +345,8 @@ impl<Name: Clone> Type<Name> {
                 })
             }
 
-            TypeContent::Func {
-                access,
-                params,
-                arg,
-                ret,
-            } => {
+            TypeContent::Func { params, arg, ret } => {
                 Type::from_content(TypeContent::Func {
-                    access,
                     params,
                     arg: arg.subst_inner(start_index, replacements),
                     ret: ret.subst_inner(start_index, replacements),
@@ -403,7 +375,6 @@ mod test {
     // Convenience functions
 
     use super::*;
-    use super::FuncAccess::*;
 
     fn var(free: usize, index: usize) -> Type<()> {
         Type::from_content(TypeContent::Var { free, index })
@@ -416,23 +387,16 @@ mod test {
         })
     }
 
-    fn func(access: FuncAccess, arg: Type<()>, ret: Type<()>) -> Type<()> {
+    fn func(arg: Type<()>, ret: Type<()>) -> Type<()> {
         Type::from_content(TypeContent::Func {
-            access,
             params: Rc::new(Vec::new()),
             arg,
             ret,
         })
     }
 
-    fn func_forall(
-        access: FuncAccess,
-        param_kinds: &[Kind],
-        arg: Type<()>,
-        ret: Type<()>,
-    ) -> Type<()> {
+    fn func_forall(param_kinds: &[Kind], arg: Type<()>, ret: Type<()>) -> Type<()> {
         Type::from_content(TypeContent::Func {
-            access,
             params: Rc::new(
                 param_kinds
                     .iter()
@@ -480,13 +444,13 @@ mod test {
     #[test]
     #[should_panic]
     fn invalid_func() {
-        func(Many, var(1, 0), var(2, 0));
+        func(var(1, 0), var(2, 0));
     }
 
     #[test]
     #[should_panic]
     fn invalid_func_forall() {
-        func_forall(Many, &[Kind::Type, Kind::Type], var(1, 0), var(1, 0));
+        func_forall(&[Kind::Type, Kind::Type], var(1, 0), var(1, 0));
     }
 
     #[test]
@@ -523,24 +487,18 @@ mod test {
 
     #[test]
     fn free_func() {
-        assert_eq!(func(Many, var(2, 0), var(2, 1)).free(), 2);
-        assert_eq!(func(Once, var(4, 3), var(4, 0)).free(), 4);
+        assert_eq!(func(var(2, 0), var(2, 1)).free(), 2);
+        assert_eq!(func(var(4, 3), var(4, 0)).free(), 4);
     }
 
     #[test]
     fn free_func_forall() {
-        assert_eq!(
-            func_forall(Many, &[Kind::Type], var(1, 0), var(1, 0)).free(),
-            0
-        );
+        assert_eq!(func_forall(&[Kind::Type], var(1, 0), var(1, 0)).free(), 0);
+
+        assert_eq!(func_forall(&[Kind::Type], var(2, 0), var(2, 1)).free(), 1);
 
         assert_eq!(
-            func_forall(Many, &[Kind::Type], var(2, 0), var(2, 1)).free(),
-            1
-        );
-
-        assert_eq!(
-            func_forall(Many, &[Kind::Type, Kind::Type], var(2, 0), var(2, 1)).free(),
+            func_forall(&[Kind::Type, Kind::Type], var(2, 0), var(2, 1)).free(),
             0
         );
     }
@@ -612,36 +570,32 @@ mod test {
     #[test]
     fn accomodate_free_func() {
         assert_eq!(
-            func(Many, var(2, 0), var(2, 1)).accomodate_free(4),
-            func(Many, var(4, 0), var(4, 1))
+            func(var(2, 0), var(2, 1)).accomodate_free(4),
+            func(var(4, 0), var(4, 1))
         );
     }
 
     #[test]
     fn accomodate_free_func_forall() {
         assert_eq!(
-            func_forall(Many, &[Kind::Type], var(2, 0), var(2, 1)).accomodate_free(2),
-            func_forall(Many, &[Kind::Type], var(3, 0), var(3, 2))
+            func_forall(&[Kind::Type], var(2, 0), var(2, 1)).accomodate_free(2),
+            func_forall(&[Kind::Type], var(3, 0), var(3, 2))
         );
 
         assert_eq!(
             func_forall(
-                Many,
                 &[Kind::Type],
                 pair(var(2, 0), var(2, 1)),
                 func_forall(
-                    Many,
                     &[Kind::Type, Kind::Type],
                     pair(var(4, 0), var(4, 1)),
                     pair(var(4, 2), var(4, 3)),
                 ),
             ).accomodate_free(3),
             func_forall(
-                Many,
                 &[Kind::Type],
                 pair(var(4, 0), var(4, 3)),
                 func_forall(
-                    Many,
                     &[Kind::Type, Kind::Type],
                     pair(var(6, 0), var(6, 3)),
                     pair(var(6, 4), var(6, 5)),
@@ -696,13 +650,16 @@ mod test {
         );
 
         assert_eq!(
-            func(Many, func(Once, var(4, 1), var(4, 2)), var(4, 3))
-                .subst(&[pair(var(2, 0), var(2, 0)), var(2, 1)]),
-            func(
-                Many,
-                func(Once, var(2, 1), pair(var(2, 0), var(2, 0))),
-                var(2, 1),
-            )
+            func(func(var(4, 1), var(4, 2)), var(4, 3)).subst(
+                &[
+                    pair(
+                        var(2, 0),
+                        var(2, 0),
+                    ),
+                    var(2, 1),
+                ],
+            ),
+            func(func(var(2, 1), pair(var(2, 0), var(2, 0))), var(2, 1))
         );
     }
 
@@ -734,33 +691,33 @@ mod test {
     #[test]
     fn subst_func_forall() {
         assert_eq!(
-            func_forall(Many, &[Kind::Type], var(3, 1), var(3, 2)).subst(&[var(1, 0)]),
-            func_forall(Many, &[Kind::Type], var(2, 0), var(2, 1))
+            func_forall(&[Kind::Type], var(3, 1), var(3, 2)).subst(&[var(1, 0)]),
+            func_forall(&[Kind::Type], var(2, 0), var(2, 1))
         );
 
         assert_eq!(
-            func_forall(Many, &[Kind::Type], var(3, 2), var(3, 1)).subst(&[var(1, 0)]),
-            func_forall(Many, &[Kind::Type], var(2, 1), var(2, 0))
+            func_forall(&[Kind::Type], var(3, 2), var(3, 1)).subst(&[var(1, 0)]),
+            func_forall(&[Kind::Type], var(2, 1), var(2, 0))
         );
 
         assert_eq!(
-            func_forall(Many, &[Kind::Type], var(2, 0), var(2, 1))
-                .subst(&[func_forall(Many, &[Kind::Type], var(1, 0), var(1, 0))]),
+            func_forall(&[Kind::Type], var(2, 0), var(2, 1)).subst(
+                &[func_forall(&[Kind::Type], var(1, 0), var(1, 0))],
+            ),
             func_forall(
-                Many,
                 &[Kind::Type],
-                func_forall(Many, &[Kind::Type], var(2, 1), var(2, 1)),
+                func_forall(&[Kind::Type], var(2, 1), var(2, 1)),
                 var(1, 0),
             )
         );
 
         assert_eq!(
-            func_forall(Many, &[Kind::Type], var(3, 1), var(3, 2))
-                .subst(&[func_forall(Many, &[Kind::Type], var(2, 0), var(2, 1))]),
+            func_forall(&[Kind::Type], var(3, 1), var(3, 2)).subst(
+                &[func_forall(&[Kind::Type], var(2, 0), var(2, 1))],
+            ),
             func_forall(
-                Many,
                 &[Kind::Type],
-                func_forall(Many, &[Kind::Type], var(3, 0), var(3, 2)),
+                func_forall(&[Kind::Type], var(3, 0), var(3, 2)),
                 var(2, 1),
             )
         );

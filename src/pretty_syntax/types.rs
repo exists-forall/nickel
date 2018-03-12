@@ -94,14 +94,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             }
         }
 
-        TypeContent::Func {
-            access: _,
-            params,
-            arg,
-            ret,
-        } => {
-            // TODO: Render access
-
+        TypeContent::Func { params, arg, ret } => {
             names.push_scope();
 
             let params_pretty = if params.len() > 0 {
