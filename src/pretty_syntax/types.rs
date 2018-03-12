@@ -17,6 +17,43 @@ pub enum Place {
     AppLeft,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KindPlace {
+    Root,
+    ConstructorResult,
+}
+
+pub fn kind_to_pretty(place: KindPlace, kind: &Kind) -> Box<Pretty> {
+    match kind {
+        &Kind::Type => Box::new("*"),
+        &Kind::Place => Box::new("Place"),
+        &Kind::Version => Box::new("Version"),
+        &Kind::Constructor {
+            ref params,
+            ref result,
+        } => {
+            let params_pretty = delimited(
+                &";".join(Sep(1)),
+                params.iter().map(
+                    |param| kind_to_pretty(KindPlace::Root, param),
+                ),
+            ).join(Conditional::OnlyBroken(";"));
+
+            let result_pretty = kind_to_pretty(KindPlace::ConstructorResult, result);
+
+            let content_pretty = Group::new("(".join(block(params_pretty)).join(")"))
+                .join(" →")
+                .join(Sep(1))
+                .join(result_pretty);
+
+            match place {
+                KindPlace::Root => Box::new(Group::new(content_pretty)),
+                KindPlace::ConstructorResult => Box::new(content_pretty),
+            }
+        }
+    }
+}
+
 pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
     names: &mut Names,
     place: Place,
@@ -33,8 +70,16 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             let body_pretty = to_pretty(names, Place::ExistsBody, body);
             names.pop_scope();
 
-            // TODO: Render kind
-            let content_pretty = "∃ ".join(name).join(".").join(Sep(1)).join(body_pretty);
+            let kind_pretty = kind_to_pretty(KindPlace::Root, &param.kind);
+            let param_pretty = Group::new(
+                "("
+                    .join(block(name.join(" :").join(Sep(1)).join(kind_pretty)))
+                    .join(")"),
+            );
+
+            let content_pretty = "∃ ".join(param_pretty).join(".").join(Sep(1)).join(
+                body_pretty,
+            );
 
             match place {
                 Place::ExistsBody => Box::new(content_pretty),
@@ -63,10 +108,13 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 // TODO: Render kinds
                 let names_pretty = delimited(
                     &";".join(Sep(1)),
-                    params.iter().map(|param|
-                         // This is a mutating operation.
-                         // Names are added here!
-                        names.add_name(param.name.clone().into())),
+                    params.iter().map(|param| {
+                        // This is a mutating operation.
+                        // Names are added here!
+                        let name = names.add_name(param.name.clone().into());
+                        let kind_pretty = kind_to_pretty(KindPlace::Root, &param.kind);
+                        Group::new(name.join(" :").join(Sep(1)).join(kind_pretty))
+                    }),
                 ).join(Conditional::OnlyBroken(";"));
 
                 Some(
