@@ -72,9 +72,9 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
 
             let kind_pretty = kind_to_pretty(KindPlace::Root, &param.kind);
             let param_pretty = Group::new(
-                "("
+                "{"
                     .join(block(name.join(" :").join(Sep(1)).join(kind_pretty)))
-                    .join(")"),
+                    .join("}"),
             );
 
             let content_pretty = "∃ ".join(param_pretty).join(".").join(Sep(1)).join(
