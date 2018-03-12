@@ -1,4 +1,4 @@
-extern crate pretty;
+extern crate pretty_trait;
 
 pub mod types;
 pub mod expr;
