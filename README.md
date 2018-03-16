@@ -11,9 +11,9 @@ target for high-performance functional languages.  Its main features are:
 - **Predictable performance** and precise control over **memory management.**
   Nickel can support languages without a garbage collector or even a heap
   allocator.
-- Performant **in-place mutation** of data structures, while ensuring functional
+- Efficient **in-place mutation** of data structures, while ensuring functional
   purity via linear types.
-- An **expressive type system** which includes first first-class support for
+- An **expressive type system** which includes first-class support for
   arbitrary-rank universal quantification, existential quantification, and
   generalized algebraic data types.
 
