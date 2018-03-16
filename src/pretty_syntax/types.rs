@@ -41,7 +41,7 @@ pub fn kind_to_pretty(place: KindPlace, kind: &Kind) -> Box<Pretty> {
             let result_pretty = kind_to_pretty(KindPlace::ConstructorResult, result);
 
             let content_pretty = Group::new("(".join(block(params_pretty)).join(")"))
-                .join(" →")
+                .join(" ->")
                 .join(Sep(1))
                 .join(result_pretty);
 
@@ -76,9 +76,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                     .join("}"),
             );
 
-            let content_pretty = "∃ ".join(param_pretty).join(".").join(Sep(1)).join(
-                body_pretty,
-            );
+            let content_pretty = "exists ".join(param_pretty).join(Sep(1)).join(body_pretty);
 
             match place {
                 Place::ExistsBody => Box::new(content_pretty),
@@ -110,7 +108,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 ).join(Conditional::OnlyBroken(";"));
 
                 Some(
-                    Group::new("∀ {".join(block(names_pretty)).join("}")).join(Sep(1)),
+                    Group::new("forall {".join(block(names_pretty)).join("}")).join(Sep(1)),
                 )
             } else {
                 None
@@ -123,7 +121,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
 
             let content_pretty = params_pretty
                 .join(arg_pretty)
-                .join(" →")
+                .join(" ->")
                 .join(Sep(1))
                 .join(ret_pretty);
 
