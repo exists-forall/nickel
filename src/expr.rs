@@ -2,30 +2,53 @@ use std::rc::Rc;
 
 use super::types::*;
 
-pub enum Expr<TName> {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ValParam<Name> {
+    pub name: Name,
+    pub ty: Type<Name>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ExprDataInner<Name> {
     Var { index: usize },
 
-    AbsType { kind: Kind, body: Rc<Expr<TName>> },
-    AbsVar {
-        arg_type: Type<TName>,
-        body: Rc<Expr<TName>>,
+    CopyVar { index: usize },
+
+    Abs {
+        type_params: Rc<Vec<TypeParam<Name>>>,
+        val_param: ValParam<Name>,
     },
 
-    AppType {
-        expr: Rc<Expr<TName>>,
-        arg: Type<TName>,
-    },
-    AppVar {
-        expr: Rc<Expr<TName>>,
-        arg: Rc<Expr<TName>>,
+    App {
+        type_params: Rc<Vec<Type<Name>>>,
+        val_param: ExprData<Name>,
     },
 
-    LetVar {
-        expr: Rc<Expr<TName>>,
-        body: Rc<Expr<TName>>,
+    Pair {
+        left: ExprData<Name>,
+        right: ExprData<Name>,
     },
+
     LetPair {
-        expr: Rc<Expr<TName>>,
-        body: Rc<Expr<TName>>,
+        names: Rc<Vec<Name>>,
+        val: ExprData<Name>,
+        body: ExprData<Name>,
     },
+
+    LetExists {
+        type_names: Rc<Vec<Name>>,
+        val_name: Name,
+        body: ExprData<Name>,
+    },
+
+    MakeExists {
+        params: Rc<Vec<(Name, Type<Name>)>>,
+        type_body: Type<Name>,
+        body: ExprData<Name>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExprData<Name> {
+    inner: Rc<ExprDataInner<Name>>,
 }
