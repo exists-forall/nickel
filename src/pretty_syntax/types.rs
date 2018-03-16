@@ -1,10 +1,9 @@
 use std::rc::Rc;
 
-use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, delimited};
+use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, delimited, block};
 
 use super::super::types::*;
 use pretty_syntax::names::Names;
-use pretty_syntax::block::block;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Place {
