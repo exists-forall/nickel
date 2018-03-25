@@ -396,6 +396,10 @@ mod test {
 
     use super::*;
 
+    fn unit(free: usize) -> Type<()> {
+        Type::from_content(TypeContent::Unit { free })
+    }
+
     fn var(free: usize, index: usize) -> Type<()> {
         Type::from_content(TypeContent::Var { free, index })
     }
@@ -486,6 +490,12 @@ mod test {
     }
 
     #[test]
+    fn free_unit() {
+        assert_eq!(unit(0).free(), 0);
+        assert_eq!(unit(5).free(), 5);
+    }
+
+    #[test]
     fn free_var() {
         assert_eq!(var(1, 0).free(), 1);
         assert_eq!(var(10, 5).free(), 10);
@@ -533,6 +543,14 @@ mod test {
     fn free_app() {
         assert_eq!(app(var(2, 0), var(2, 1)).free(), 2);
         assert_eq!(app(var(4, 3), var(4, 0)).free(), 4);
+    }
+
+    #[test]
+    fn accomodate_free_unit() {
+        assert_eq!(unit(0).accomodate_free(0), unit(0));
+        assert_eq!(unit(10).accomodate_free(10), unit(10));
+        assert_eq!(unit(3).accomodate_free(5), unit(5));
+        assert_eq!(unit(0).accomodate_free(5), unit(5));
     }
 
     #[test]
@@ -642,6 +660,8 @@ mod test {
 
     #[test]
     fn subst_simple() {
+        assert_eq!(unit(4).subst(&[var(2, 0), var(2, 1)]), unit(2));
+
         assert_eq!(var(2, 0).subst(&[var(1, 0)]), var(1, 0));
 
         assert_eq!(var(2, 1).subst(&[var(1, 0)]), var(1, 0));
