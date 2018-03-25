@@ -19,6 +19,7 @@ pub struct TypeParam<Name> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum TypeDataInner<Name> {
+    Unit,
     Var { index: usize },
     Exists {
         param: TypeParam<Name>,
@@ -48,6 +49,7 @@ struct TypeData<Name> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TypeContent<Name> {
+    Unit { free: usize },
     Var { free: usize, index: usize },
     Exists {
         param: TypeParam<Name>,
@@ -78,6 +80,16 @@ impl<Name: Clone> Type<Name> {
 
     pub fn from_content(content: TypeContent<Name>) -> Self {
         match content {
+            TypeContent::Unit { free } => {
+                Type {
+                    free,
+                    data: TypeData {
+                        max_index: 0,
+                        inner: Rc::new(TypeDataInner::Unit),
+                    },
+                }
+            }
+
             TypeContent::Var { free, index } => {
                 assert!(index < free);
                 Type {
@@ -154,6 +166,8 @@ impl<Name: Clone> Type<Name> {
 
     pub fn to_content(&self) -> TypeContent<Name> {
         match &*self.data.inner {
+            &TypeDataInner::Unit => TypeContent::Unit { free: self.free },
+
             &TypeDataInner::Var { index } => {
                 TypeContent::Var {
                     free: self.free,
@@ -237,6 +251,8 @@ impl<Name: Clone> Type<Name> {
         }
 
         let new_content = match self.to_content() {
+            TypeContent::Unit { free } => TypeContent::Unit { free: free + inc_by },
+
             TypeContent::Var {
                 free,
                 index: var_index,
@@ -318,6 +334,10 @@ impl<Name: Clone> Type<Name> {
         }
 
         match self.to_content() {
+            TypeContent::Unit { free } => {
+                Type::from_content(TypeContent::Unit { free: free - replacements.len() })
+            }
+
             TypeContent::Var { free, index } => {
                 let new_free = free - replacements.len();
                 if start_index + replacements.len() <= index {

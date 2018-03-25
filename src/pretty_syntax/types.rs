@@ -61,6 +61,8 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
     assert_eq!(names.index_count(), ty.free());
 
     match ty.to_content() {
+        TypeContent::Unit { free: _ } => Box::new("()"),
+
         TypeContent::Var { free: _, index } => Box::new(names.get_name(index)),
 
         TypeContent::Exists { param, body } => {
