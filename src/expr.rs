@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use super::types::*;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VarUsage {
     Consume,
     Copy,
@@ -317,6 +317,140 @@ impl<Name: Clone> Expr<Name> {
                             type_body,
                             body: body.data,
                         }),
+                    },
+                }
+            }
+        }
+    }
+
+    pub fn to_content(&self) -> ExprContent<Name> {
+        match &*self.data.inner {
+            &ExprDataInner::Unit => {
+                ExprContent::Unit {
+                    free_vars: self.free_vars,
+                    free_types: self.free_types,
+                }
+            }
+
+            &ExprDataInner::Var { usage, index } => {
+                ExprContent::Var {
+                    free_vars: self.free_vars,
+                    free_types: self.free_types,
+                    usage,
+                    index,
+                }
+            }
+
+            &ExprDataInner::Abs {
+                ref type_params,
+                ref arg_name,
+                ref arg_type,
+                ref body,
+            } => {
+                ExprContent::Abs {
+                    type_params: type_params.clone(),
+                    arg_name: arg_name.clone(),
+                    arg_type: arg_type.clone(),
+                    body: Expr {
+                        free_types: self.free_types + type_params.len(),
+                        free_vars: self.free_vars + 1,
+                        data: body.clone(),
+                    },
+                }
+            }
+
+            &ExprDataInner::App {
+                ref callee,
+                ref type_params,
+                ref arg,
+            } => {
+                ExprContent::App {
+                    callee: Expr {
+                        free_types: self.free_types,
+                        free_vars: self.free_vars,
+                        data: callee.clone(),
+                    },
+                    type_params: type_params.clone(),
+                    arg: Expr {
+                        free_types: self.free_types,
+                        free_vars: self.free_vars,
+                        data: arg.clone(),
+                    },
+                }
+            }
+
+            &ExprDataInner::Pair {
+                ref left,
+                ref right,
+            } => {
+                ExprContent::Pair {
+                    left: Expr {
+                        free_types: self.free_types,
+                        free_vars: self.free_vars,
+                        data: left.clone(),
+                    },
+                    right: Expr {
+                        free_types: self.free_types,
+                        free_vars: self.free_vars,
+                        data: right.clone(),
+                    },
+                }
+            }
+
+            &ExprDataInner::Let {
+                ref names,
+                ref val,
+                ref body,
+            } => {
+                ExprContent::Let {
+                    names: names.clone(),
+                    val: Expr {
+                        free_types: self.free_types,
+                        free_vars: self.free_vars,
+                        data: val.clone(),
+                    },
+                    body: Expr {
+                        free_types: self.free_types,
+                        free_vars: self.free_vars + names.len(),
+                        data: body.clone(),
+                    },
+                }
+            }
+
+            &ExprDataInner::LetExists {
+                ref type_names,
+                ref val_name,
+                ref val,
+                ref body,
+            } => {
+                ExprContent::LetExists {
+                    type_names: type_names.clone(),
+                    val_name: val_name.clone(),
+                    val: Expr {
+                        free_types: self.free_types,
+                        free_vars: self.free_vars,
+                        data: val.clone(),
+                    },
+                    body: Expr {
+                        free_types: self.free_types + type_names.len(),
+                        free_vars: self.free_vars + 1,
+                        data: body.clone(),
+                    },
+                }
+            }
+
+            &ExprDataInner::MakeExists {
+                ref params,
+                ref type_body,
+                ref body,
+            } => {
+                ExprContent::MakeExists {
+                    params: params.clone(),
+                    type_body: type_body.clone(),
+                    body: Expr {
+                        free_vars: self.free_vars,
+                        free_types: self.free_types,
+                        data: body.clone(),
                     },
                 }
             }
