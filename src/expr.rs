@@ -14,7 +14,7 @@ enum ExprDataInner<Name> {
 
     Var { usage: VarUsage, index: usize },
 
-    Abs {
+    Func {
         type_params: Rc<Vec<TypeParam<Name>>>,
         arg_name: Name,
         arg_type: Type<Name>,
@@ -68,7 +68,7 @@ pub enum ExprContent<Name> {
         index: usize,
     },
 
-    Abs {
+    Func {
         type_params: Rc<Vec<TypeParam<Name>>>,
         arg_name: Name,
         arg_type: Type<Name>,
@@ -146,7 +146,7 @@ impl<Name: Clone> Expr<Name> {
                 }
             }
 
-            ExprContent::Abs {
+            ExprContent::Func {
                 type_params,
                 arg_name,
                 arg_type,
@@ -172,7 +172,7 @@ impl<Name: Clone> Expr<Name> {
                     free_vars: body.free_vars - 1,
                     free_types: body.free_types - type_params.len(),
                     data: ExprData {
-                        inner: Rc::new(ExprDataInner::Abs {
+                        inner: Rc::new(ExprDataInner::Func {
                             type_params,
                             arg_name,
                             arg_type,
@@ -341,13 +341,13 @@ impl<Name: Clone> Expr<Name> {
                 }
             }
 
-            &ExprDataInner::Abs {
+            &ExprDataInner::Func {
                 ref type_params,
                 ref arg_name,
                 ref arg_type,
                 ref body,
             } => {
-                ExprContent::Abs {
+                ExprContent::Func {
                     type_params: type_params.clone(),
                     arg_name: arg_name.clone(),
                     arg_type: arg_type.clone(),

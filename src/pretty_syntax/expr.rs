@@ -47,7 +47,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             }
         }
 
-        ExprContent::Abs {
+        ExprContent::Func {
             type_params,
             arg_name,
             arg_type,
