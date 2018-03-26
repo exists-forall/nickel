@@ -4,7 +4,7 @@ use super::types::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VarUsage {
-    Consume,
+    Move,
     Copy,
 }
 
