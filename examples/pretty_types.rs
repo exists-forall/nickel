@@ -6,6 +6,7 @@ use std::rc::Rc;
 use pretty_trait::println_simple;
 
 use nickel::types::*;
+use nickel::test_utils::types::*;
 use nickel::pretty_syntax::names::Names;
 use nickel::pretty_syntax::types::{Place, to_pretty};
 
@@ -21,10 +22,10 @@ fn main() {
     let mut names = Names::new();
 
     names.add_name(rc_str("foo"));
-    let foo = Type::from_content(TypeContent::Var { free: 2, index: 0 });
+    let foo = var(2, 0);
 
     names.add_name(rc_str("bar"));
-    let bar = Type::from_content(TypeContent::Var { free: 2, index: 1 });
+    let bar = var(2, 1);
 
     println!("Simple variables:");
     print_type(&mut names, foo.clone());
@@ -32,126 +33,49 @@ fn main() {
 
     println!();
     println!("Simple pairs:");
+    print_type(&mut names, pair(foo.clone(), bar.clone()));
     print_type(
         &mut names,
-        Type::from_content(TypeContent::Pair {
-            left: foo.clone(),
-            right: bar.clone(),
-        }),
+        pair(foo.clone(), pair(bar.clone(), foo.clone())),
     );
     print_type(
         &mut names,
-        Type::from_content(TypeContent::Pair {
-            left: foo.clone(),
-            right: Type::from_content(TypeContent::Pair {
-                left: bar.clone(),
-                right: foo.clone(),
-            }),
-        }),
-    );
-    print_type(
-        &mut names,
-        Type::from_content(TypeContent::Pair {
-            left: Type::from_content(TypeContent::Pair {
-                left: foo.clone(),
-                right: bar.clone(),
-            }),
-            right: foo.clone(),
-        }),
+        pair(pair(foo.clone(), bar.clone()), foo.clone()),
     );
 
     println!();
     println!("Simple functions:");
+    print_type(&mut names, func(foo.clone(), bar.clone()));
     print_type(
         &mut names,
-        Type::from_content(TypeContent::Func {
-            params: Rc::new(Vec::new()),
-            arg: foo.clone(),
-            ret: bar.clone(),
-        }),
+        func(pair(foo.clone(), bar.clone()), bar.clone()),
     );
     print_type(
         &mut names,
-        Type::from_content(TypeContent::Func {
-            params: Rc::new(Vec::new()),
-            arg: Type::from_content(TypeContent::Pair {
-                left: foo.clone(),
-                right: bar.clone(),
-            }),
-            ret: bar.clone(),
-        }),
-    );
-    print_type(
-        &mut names,
-        Type::from_content(TypeContent::Func {
-            params: Rc::new(Vec::new()),
-            arg: foo.clone(),
-            ret: Type::from_content(TypeContent::Pair {
-                left: bar.clone(),
-                right: foo.clone(),
-            }),
-        }),
+        func(foo.clone(), pair(bar.clone(), foo.clone())),
     );
 
     println!();
     println!("Existentials:");
+    print_type(&mut names, exists_named("x", Kind::Type, var(3, 2)));
+    print_type(&mut names, exists_named("foo", Kind::Type, var(3, 2)));
     print_type(
         &mut names,
-        Type::from_content(TypeContent::Exists {
-            param: TypeParam {
-                name: rc_str("x"),
-                kind: Kind::Type,
-            },
-            body: Type::from_content(TypeContent::Var { free: 3, index: 2 }),
-        }),
-    );
-    print_type(
-        &mut names,
-        Type::from_content(TypeContent::Exists {
-            param: TypeParam {
-                name: rc_str("foo"),
-                kind: Kind::Type,
-            },
-            body: Type::from_content(TypeContent::Var { free: 3, index: 2 }),
-        }),
-    );
-    print_type(
-        &mut names,
-        Type::from_content(TypeContent::Exists {
-            param: TypeParam {
-                name: rc_str("x"),
-                kind: Kind::Type,
-            },
-            body: Type::from_content(TypeContent::Exists {
-                param: TypeParam {
-                    name: rc_str("y"),
-                    kind: Kind::Type,
-                },
-                body: Type::from_content(TypeContent::Pair {
-                    left: Type::from_content(TypeContent::Var { free: 4, index: 2 }),
-                    right: Type::from_content(TypeContent::Var { free: 4, index: 3 }),
-                }),
-            }),
-        }),
+        exists_named(
+            "x",
+            Kind::Type,
+            exists_named("y", Kind::Type, pair(var(4, 2), var(4, 3))),
+        ),
     );
 
     println!();
     println!("Universals:");
     print_type(
         &mut names,
-        Type::from_content(TypeContent::Func {
-            params: Rc::new(vec![
-                TypeParam {
-                    name: rc_str("x"),
-                    kind: Kind::Type,
-                },
-                TypeParam {
-                    name: rc_str("y"),
-                    kind: Kind::Type,
-                },
-            ]),
-            arg: Type::from_content(TypeContent::Var { free: 4, index: 2 }),
-            ret: Type::from_content(TypeContent::Var { free: 4, index: 3 }),
-        }),
+        func_forall_named(
+            &[("x", Kind::Type), ("y", Kind::Type)],
+            var(4, 2),
+            var(4, 3),
+        ),
     );
 }
