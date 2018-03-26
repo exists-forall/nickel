@@ -2,8 +2,9 @@ extern crate nickel;
 extern crate pretty_trait;
 
 use std::rc::Rc;
+use std::io::stdout;
 
-use pretty_trait::println_simple;
+use pretty_trait::write;
 
 use nickel::types::*;
 use nickel::expr::*;
@@ -13,7 +14,13 @@ use nickel::pretty_syntax::names::Names;
 use nickel::pretty_syntax::expr::{Place, to_pretty};
 
 fn print_expr(var_names: &mut Names, type_names: &mut Names, expr: Expr<Rc<String>>) {
-    println_simple(&to_pretty(var_names, type_names, Place::Root, expr));
+    write(
+        &mut stdout(),
+        &to_pretty(var_names, type_names, Place::Root, expr),
+        Some(40),
+        2,
+    ).expect("Printing failed");
+    println!();
 }
 
 fn rc_str(s: &str) -> Rc<String> {
@@ -127,6 +134,50 @@ fn main() {
             "x",
             types::var(3, 2),
             var(VarUsage::Move, 3, 3, 2),
+        ),
+    );
+
+    println!();
+    println!("Full example:");
+    print_expr(
+        &mut var_names,
+        &mut type_names,
+        func_forall_named(
+            &[
+                (
+                    "f",
+                    Kind::Constructor {
+                        params: Rc::new(vec![Kind::Type]),
+                        result: Rc::new(Kind::Type),
+                    },
+                ),
+                ("a", Kind::Type),
+                ("b", Kind::Type),
+            ],
+            "args",
+            types::pair(
+                types::app(types::var(5, 2), types::var(5, 3)),
+                types::pair(
+                    types::func_forall_named(
+                        &[("a", Kind::Type), ("b", Kind::Type)],
+                        types::pair(
+                            types::func(types::var(7, 5), types::var(7, 6)),
+                            types::app(types::var(7, 2), types::var(7, 5)),
+                        ),
+                        types::app(types::var(7, 2), types::var(7, 6)),
+                    ),
+                    types::func(types::var(5, 3), types::var(5, 4)),
+                ),
+            ),
+            let_vars_named(
+                &["x", "map", "f"],
+                var(VarUsage::Move, 3, 5, 2),
+                app_forall(
+                    var(VarUsage::Copy, 6, 5, 4),
+                    &[types::var(5, 3), types::var(5, 4)],
+                    pair(var(VarUsage::Copy, 6, 5, 5), var(VarUsage::Move, 6, 5, 3)),
+                ),
+            ),
         ),
     );
 }
