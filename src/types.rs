@@ -392,54 +392,8 @@ impl<Name: Clone> Type<Name> {
 
 #[cfg(test)]
 mod test {
-    // Convenience functions
-
     use super::*;
-
-    fn unit(free: usize) -> Type<()> {
-        Type::from_content(TypeContent::Unit { free })
-    }
-
-    fn var(free: usize, index: usize) -> Type<()> {
-        Type::from_content(TypeContent::Var { free, index })
-    }
-
-    fn exists(kind: Kind, body: Type<()>) -> Type<()> {
-        Type::from_content(TypeContent::Exists {
-            param: TypeParam { name: (), kind },
-            body,
-        })
-    }
-
-    fn func(arg: Type<()>, ret: Type<()>) -> Type<()> {
-        Type::from_content(TypeContent::Func {
-            params: Rc::new(Vec::new()),
-            arg,
-            ret,
-        })
-    }
-
-    fn func_forall(param_kinds: &[Kind], arg: Type<()>, ret: Type<()>) -> Type<()> {
-        Type::from_content(TypeContent::Func {
-            params: Rc::new(
-                param_kinds
-                    .iter()
-                    .cloned()
-                    .map(|kind| TypeParam { name: (), kind })
-                    .collect(),
-            ),
-            arg,
-            ret,
-        })
-    }
-
-    fn pair(left: Type<()>, right: Type<()>) -> Type<()> {
-        Type::from_content(TypeContent::Pair { left, right })
-    }
-
-    fn app(constructor: Type<()>, param: Type<()>) -> Type<()> {
-        Type::from_content(TypeContent::App { constructor, param })
-    }
+    use test_utils::types::*;
 
     #[test]
     #[should_panic]
