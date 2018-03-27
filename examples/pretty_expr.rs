@@ -177,6 +177,23 @@ fn main() {
     );
 
     println!();
+    println!("Simple let_exists:");
+    print_expr(
+        &mut var_names,
+        &mut type_names,
+        let_exists_named(
+            &["T", "U", "V"],
+            "x",
+            foo_var.clone(),
+            app_forall(
+                bar_var.clone(),
+                &[types::var(5, 2), types::var(5, 3), types::var(5, 4)],
+                var(VarUsage::Move, 3, 5, 2),
+            ),
+        ),
+    );
+
+    println!();
     println!("Full example:");
     print_expr(
         &mut var_names,
