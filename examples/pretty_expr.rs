@@ -194,6 +194,18 @@ fn main() {
     );
 
     println!();
+    println!("Simple make_exists:");
+    print_expr(
+        &mut var_names,
+        &mut type_names,
+        make_exists_named(
+            &[("T", foo_type.clone()), ("U", bar_type.clone())],
+            types::pair(types::var(4, 2), types::var(4, 3)),
+            pair(foo_var.clone(), bar_var.clone()),
+        ),
+    );
+
+    println!();
     println!("Full example:");
     print_expr(
         &mut var_names,
