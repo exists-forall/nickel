@@ -138,6 +138,45 @@ fn main() {
     );
 
     println!();
+    println!("Simple lets:");
+    print_expr(
+        &mut var_names,
+        &mut type_names,
+        let_vars_named(&["baz"], foo_var.clone(), var(VarUsage::Move, 3, 2, 2)),
+    );
+    println!();
+    print_expr(
+        &mut var_names,
+        &mut type_names,
+        let_vars_named(
+            &["x", "y", "z"],
+            foo_var.clone(),
+            pair(
+                var(VarUsage::Move, 5, 2, 2),
+                pair(var(VarUsage::Move, 5, 2, 3), var(VarUsage::Move, 5, 2, 4)),
+            ),
+        ),
+    );
+    println!();
+    print_expr(
+        &mut var_names,
+        &mut type_names,
+        let_vars_named(
+            &["a"],
+            app(foo_var.clone(), bar_var.clone()),
+            let_vars_named(
+                &["b"],
+                app(foo_var.clone(), var(VarUsage::Move, 3, 2, 2)),
+                let_vars_named(
+                    &["c"],
+                    app(foo_var.clone(), var(VarUsage::Move, 4, 2, 3)),
+                    var(VarUsage::Move, 5, 2, 4),
+                ),
+            ),
+        ),
+    );
+
+    println!();
     println!("Full example:");
     print_expr(
         &mut var_names,
