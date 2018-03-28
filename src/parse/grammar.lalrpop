@@ -1,3 +1,5 @@
+use super::syntax;
+
 grammar;
 
 pub Name: String = {
@@ -17,5 +19,20 @@ pub Name: String = {
             }
         }
         result
+    },
+};
+
+// Whitespace with comments
+pub Ws: () = {
+    () => (),
+    r"([[:space:]]|//[^\n]*)*" => (),
+};
+
+pub Ident: syntax::Ident = {
+    <name: Name> Ws <collision_id: ("#" Ws <r"[0-9]+">)?> => {
+        syntax::Ident {
+            name,
+            collision_id: collision_id.map(|id| id.parse()).unwrap_or(Ok(0)).unwrap(),
+        }
     },
 };
