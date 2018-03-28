@@ -15,14 +15,19 @@ mod test {
         assert_eq!(name("hello"), Ok("hello".to_owned()));
         assert_eq!(name("HeLlO_wOrLd"), Ok("HeLlO_wOrLd".to_owned()));
         assert_eq!(name("_foo_bar_42_baz0"), Ok("_foo_bar_42_baz0".to_owned()));
+
+        assert!(name("42").is_err());
+        assert!(name("-hello").is_err());
+        assert!(name("hello world").is_err());
+    }
+
+    #[test]
+    fn quoted_name() {
         assert_eq!(name("`hello`"), Ok("hello".to_owned()));
         assert_eq!(name("`hello world`"), Ok("hello world".to_owned()));
         assert_eq!(name("`hello\\\\world`"), Ok("hello\\world".to_owned()));
         assert_eq!(name("`hello\\`world`"), Ok("hello`world".to_owned()));
 
-        assert!(name("42").is_err());
-        assert!(name("-hello").is_err());
-        assert!(name("hello world").is_err());
         assert!(name("` ` `").is_err());
     }
 }
