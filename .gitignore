@@ -4,5 +4,4 @@
 Cargo.lock
 
 # Ignore auto-generated parser code from LALRPOP
-src/parse/*.rs
-!src/parse/mod.rs
+src/parse/grammar.rs
