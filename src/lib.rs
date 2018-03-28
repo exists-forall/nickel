@@ -1,4 +1,5 @@
 extern crate pretty_trait;
+extern crate lalrpop_util;
 
 pub mod types;
 pub mod expr;

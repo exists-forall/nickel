@@ -1,0 +1,21 @@
+grammar;
+
+pub Name: String = {
+    <name: r"[a-zA-Z_][a-zA-Z_0-9]*"> => name.to_owned(),
+
+    <quoted_name: r"`([^`\\]*|\\`|\\\\)*`"> => {
+        let mut result = String::new();
+        let mut escape = false;
+        for c in quoted_name[1..quoted_name.len() - 1].chars() {
+            if escape {
+                result.push(c);
+                escape = false;
+            } else if c == '\\' {
+                escape = true;
+            } else {
+                result.push(c);
+            }
+        }
+        result
+    },
+};
