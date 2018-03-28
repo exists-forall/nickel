@@ -2,7 +2,12 @@
 name = "nickel"
 version = "0.1.0"
 authors = ["William Brandon <hypercube97@gmail.com>"]
+build = "build.rs"
+
+[build-dependencies]
+lalrpop = "0.15.0"
 
 [dependencies]
 pretty-trait = "0.1.2"
-nom = { version = "4.0.0-beta2", features = ["verbose-errors"] }
+lalrpop-util = "0.15.0"
+regex = "0.2.1"

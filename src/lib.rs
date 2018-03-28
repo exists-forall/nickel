@@ -1,6 +1,4 @@
 extern crate pretty_trait;
-#[macro_use]
-extern crate nom;
 
 pub mod types;
 pub mod expr;
