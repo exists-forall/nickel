@@ -33,6 +33,9 @@ construction. Eventually, the Nickel toolchain will include:
     code.
 - An optional **standard library** providing type and memory safe wrappers
   around platform funtionality like memory management and IO.
+- A graphical **debugger** for exploring the runtime behavior of Nickel
+  programs.  Because Nickel is purely functional, this debugger can easily step
+  backwards as well as forwards.
 
 Questions and contributions are welcome!  Please contact [William
 Brandon](https://github.com/selectricsimian/) to learn more.
