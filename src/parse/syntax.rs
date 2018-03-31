@@ -3,7 +3,7 @@ use types::Kind;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Ident {
     pub name: String,
-    pub collision_id: usize,
+    pub collision_id: u64,
 }
 
 #[derive(Clone, Debug)]

@@ -1,20 +1,25 @@
 pub mod syntax;
 pub mod grammar;
+pub mod lex;
 
 use lalrpop_util::ParseError;
 
-pub fn name(s: &str) -> Result<String, ParseError<usize, grammar::Token, &'static str>> {
-    grammar::NameParser::new().parse(s)
-}
-
-pub fn ident(s: &str) -> Result<syntax::Ident, ParseError<usize, grammar::Token, &'static str>> {
-    grammar::IdentParser::new().parse(s)
+pub fn ident(s: &str) -> Result<syntax::Ident, ParseError<usize, lex::Token, lex::Error>> {
+    grammar::IdentParser::new().parse(lex::Lexer::from_str(s))
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use super::syntax::Ident;
+
+    fn name(s: &str) -> Result<String, ParseError<usize, lex::Token, lex::Error>> {
+        grammar::RawNameParser::new().parse(lex::Lexer::from_str(s))
+    }
+
+    fn ws(s: &str) -> Result<(), ParseError<usize, lex::Token, lex::Error>> {
+        grammar::WhitespaceParser::new().parse(lex::Lexer::from_str(s))
+    }
 
     #[test]
     fn unquoted_name() {
@@ -39,20 +44,15 @@ mod test {
 
     #[test]
     fn whitespace() {
-        let ws = grammar::WsParser::new();
+        assert!(ws("").is_ok());
+        assert!(ws("  \t \n    \r \x0B  \n \n \t").is_ok());
 
-        assert!(ws.parse("").is_ok());
-        assert!(ws.parse("  \t \n    \r \x0B  \n \n \t").is_ok());
+        assert!(ws("// a comment").is_ok());
+        assert!(ws("   // a comment \n \t \n // another comment  \n   ").is_ok());
 
-        assert!(ws.parse("// a comment").is_ok());
-        assert!(
-            ws.parse("   // a comment \n \t \n // another comment  \n   ")
-                .is_ok()
-        );
-
-        assert!(ws.parse(" - ").is_err());
-        assert!(ws.parse(" hello ").is_err());
-        assert!(ws.parse(" // a comment \n not a comment").is_err());
+        assert!(ws(" - ").is_err());
+        assert!(ws(" hello ").is_err());
+        assert!(ws(" // a comment \n not a comment").is_err());
     }
 
     #[test]

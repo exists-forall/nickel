@@ -1,38 +1,58 @@
 use super::syntax;
+use super::lex;
 
 grammar;
 
-pub Name: String = {
-    <name: r"[a-zA-Z_][a-zA-Z_0-9]*"> => name.to_owned(),
-
-    <quoted_name: r"`([^`\\]*|\\`|\\\\)*`"> => {
-        let mut result = String::new();
-        let mut escape = false;
-        for c in quoted_name[1..quoted_name.len() - 1].chars() {
-            if escape {
-                result.push(c);
-                escape = false;
-            } else if c == '\\' {
-                escape = true;
-            } else {
-                result.push(c);
-            }
-        }
-        result
-    },
-};
-
-// Whitespace with comments
-pub Ws: () = {
-    () => (),
-    r"([[:space:]]|//[^\n]*)*" => (),
-};
-
 pub Ident: syntax::Ident = {
-    <name: Name> Ws <collision_id: ("#" Ws <r"[0-9]+">)?> => {
+    <name: Name> <collision_id: ("#" <UInt>)?> => {
         syntax::Ident {
             name,
-            collision_id: collision_id.map(|id| id.parse()).unwrap_or(Ok(0)).unwrap(),
+            collision_id: collision_id.unwrap_or(0),
         }
     },
+};
+
+extern {
+    type Location = usize;
+    type Error = lex::Error;
+
+    enum lex::Token {
+        Name => lex::Token::Name(<String>),
+        UInt => lex::Token::UInt(<u64>),
+
+        "move" => lex::Token::KeyMove,
+        "func" => lex::Token::KeyFunc,
+        "let" => lex::Token::KeyLet,
+        "let_exists" => lex::Token::KeyLetExists,
+        "in" => lex::Token::KeyIn,
+        "make_exists" => lex::Token::KeyMakeExists,
+        "of" => lex::Token::KeyOf,
+
+        "forall" => lex::Token::KeyForall,
+        "exists" => lex::Token::KeyExists,
+        "Version" => lex::Token::KeyVersion,
+        "Place" => lex::Token::KeyPlace,
+
+        "#" => lex::Token::NumSign,
+        "," => lex::Token::Comma,
+        ";" => lex::Token::Semicolon,
+        "=" => lex::Token::Equals,
+        ":" => lex::Token::Colon,
+
+        "(" => lex::Token::OpenPar,
+        ")" => lex::Token::ClosePar,
+
+        "{" => lex::Token::OpenCurly,
+        "}" => lex::Token::CloseCurly,
+    }
+}
+
+// Nonterminals which are just thin wrappers over terminals, for testing the lexer itself:
+
+pub RawName: String = {
+    <Name>,
+};
+
+pub Whitespace: () = {
+    () => (),
 };
