@@ -1,5 +1,6 @@
 use std::iter::Peekable;
 use std::str::CharIndices;
+use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -56,6 +57,74 @@ impl<'a> Lexer<CharIndices<'a>> {
     }
 }
 
+lazy_static! {
+    static ref KEYWORDS: HashMap<&'static str, Token> = {
+        let mut keywords = HashMap::new();
+
+        keywords.insert("move", Token::KeyMove);
+        keywords.insert("func", Token::KeyFunc);
+        keywords.insert("let", Token::KeyLet);
+        keywords.insert("let_exists", Token::KeyLetExists);
+        keywords.insert("in", Token::KeyIn);
+        keywords.insert("make_exists", Token::KeyMakeExists);
+        keywords.insert("of", Token::KeyOf);
+
+        keywords.insert("forall", Token::KeyForall);
+        keywords.insert("exists", Token::KeyExists);
+        keywords.insert("Version", Token::KeyVersion);
+        keywords.insert("Place", Token::KeyPlace);
+
+        keywords
+    };
+}
+
+pub fn is_keyword(s: &str) -> bool {
+    KEYWORDS.contains_key(s)
+}
+
+pub fn valid_name(s: &str) -> bool {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => {
+            return false;
+        }
+        Some(first_char) => {
+            match first_char {
+                'a'...'z' | 'A'...'Z' | '_' => {
+                    while let Some(c) = chars.next() {
+                        match c {
+                            'a'...'z' | 'A'...'Z' | '_' | '0'...'9' => {}
+                            _ => {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Passed basic syntactic test
+    // Now all that remains is to see if it's a reserved word
+    !is_keyword(s)
+}
+
+pub fn quote_name(s: &str) -> String {
+    let mut result = String::new();
+    result.push('`');
+    for c in s.chars() {
+        if c == '\\' || c == '`' {
+            result.push('\\');
+        }
+        result.push(c);
+    }
+    result.push('`');
+    result
+}
+
 impl<Chars: Iterator<Item = (usize, char)>> Iterator for Lexer<Chars> {
     type Item = Result<(usize, Token, usize), Error>;
 
@@ -95,24 +164,9 @@ impl<Chars: Iterator<Item = (usize, char)>> Iterator for Lexer<Chars> {
                         }
                     }
 
-                    let keyword = match &name as &str {
-                        "move" => Some(Token::KeyMove),
-                        "func" => Some(Token::KeyFunc),
-                        "let" => Some(Token::KeyLet),
-                        "let_exists" => Some(Token::KeyLetExists),
-                        "in" => Some(Token::KeyIn),
-                        "make_exists" => Some(Token::KeyMakeExists),
-                        "of" => Some(Token::KeyOf),
+                    let keyword = KEYWORDS.get(&name as &str);
 
-                        "forall" => Some(Token::KeyForall),
-                        "exists" => Some(Token::KeyExists),
-                        "Version" => Some(Token::KeyVersion),
-                        "Place" => Some(Token::KeyPlace),
-
-                        _ => None,
-                    };
-
-                    if let Some(keyword) = keyword {
+                    if let Some(keyword) = keyword.cloned() {
                         return Some(Ok((loc, keyword, final_loc)));
                     }
 

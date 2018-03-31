@@ -2,6 +2,8 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::fmt::Write;
 
+use parse::lex::{valid_name, quote_name};
+
 #[derive(Clone, Debug)]
 struct Scope {
     index_count: usize,
@@ -56,7 +58,11 @@ impl Names {
             }
             self.counts.insert(name.clone(), curr_count + 1);
             let new_name = Rc::new({
-                let mut owned: String = (*name).clone();
+                let mut owned: String = if valid_name(&name) {
+                    (*name).clone()
+                } else {
+                    quote_name(&name)
+                };
                 write!(&mut owned, "#{}", curr_count).unwrap();
                 owned
             });
@@ -67,8 +73,13 @@ impl Names {
                 last_scope.old_counts.insert(name.clone(), 0);
             }
             self.counts.insert(name.clone(), 1);
-            self.names.push(name.clone());
-            name
+            let display_name = if valid_name(&name) {
+                name
+            } else {
+                Rc::new(quote_name(&name))
+            };
+            self.names.push(display_name.clone());
+            display_name
         }
     }
 
@@ -158,5 +169,35 @@ mod test {
         assert_eq!(*names.get_name(2), "baz");
         assert_eq!(*names.get_name(3), "foo#2");
         assert_eq!(*names.get_name(4), "bar");
+    }
+
+    #[test]
+    fn quoted() {
+        let mut names = Names::new();
+
+        assert_eq!(*names.add_name(Rc::new("".to_owned())), "``");
+        assert_eq!(*names.add_name(Rc::new("".to_owned())), "``#1");
+        assert_eq!(*names.add_name(Rc::new("forall".to_owned())), "`forall`");
+        assert_eq!(
+            *names.add_name(Rc::new("hello world".to_owned())),
+            "`hello world`"
+        );
+        assert_eq!(
+            *names.add_name(Rc::new("\\".to_owned())),
+            "`\\\\`".to_owned()
+        );
+        assert_eq!(
+            *names.add_name(Rc::new("Hello \\ world `".to_owned())),
+            "`Hello \\\\ world \\``"
+        );
+        assert_eq!(*names.add_name(Rc::new("forall".to_owned())), "`forall`#1");
+
+        assert_eq!(*names.get_name(0), "``");
+        assert_eq!(*names.get_name(1), "``#1");
+        assert_eq!(*names.get_name(2), "`forall`");
+        assert_eq!(*names.get_name(3), "`hello world`");
+        assert_eq!(*names.get_name(4), "`\\\\`");
+        assert_eq!(*names.get_name(5), "`Hello \\\\ world \\``");
+        assert_eq!(*names.get_name(6), "`forall`#1");
     }
 }

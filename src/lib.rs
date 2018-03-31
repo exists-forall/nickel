@@ -1,5 +1,7 @@
 extern crate pretty_trait;
 extern crate lalrpop_util;
+#[macro_use]
+extern crate lazy_static;
 
 pub mod types;
 pub mod expr;
