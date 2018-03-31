@@ -6,11 +6,13 @@ use lalrpop_util::ParseError;
 
 use types;
 
-pub fn ident(s: &str) -> Result<syntax::Ident, ParseError<usize, lex::Token, lex::Error>> {
+type ParseResult<T> = Result<T, ParseError<usize, lex::Token, lex::Error>>;
+
+pub fn ident(s: &str) -> ParseResult<syntax::Ident> {
     grammar::IdentParser::new().parse(lex::Lexer::from_str(s))
 }
 
-pub fn kind(s: &str) -> Result<types::Kind, ParseError<usize, lex::Token, lex::Error>> {
+pub fn kind(s: &str) -> ParseResult<types::Kind> {
     grammar::KindParser::new().parse(lex::Lexer::from_str(s))
 }
 

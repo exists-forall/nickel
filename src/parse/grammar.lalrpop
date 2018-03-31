@@ -32,7 +32,7 @@ pub Kind: types::Kind = {
     },
 };
 
-pub TypeParam: syntax::TypeParam = {
+TypeParam: syntax::TypeParam = {
     <ident: Ident> ":" <kind: Kind> => {
         syntax::TypeParam {
             ident,
