@@ -32,6 +32,86 @@ pub Kind: types::Kind = {
     },
 };
 
+pub TypeParam: syntax::TypeParam = {
+    <ident: Ident> ":" <kind: Kind> => {
+        syntax::TypeParam {
+            ident,
+            kind,
+        }
+    },
+};
+
+AtomicType: syntax::Type = {
+    "(" <Type> ")",
+    "(" ")" => syntax::Type::Unit,
+    <ident: Ident> => syntax::Type::Var { ident },
+    <constructor: AtomicType> "(" <params: (<Type> ";")*> <last_param: Type?> ")" => {
+        // TODO: This currently allows `F()` to be parsed as `F`.
+        // Is this really the behavior we want?
+        let mut app = constructor;
+        for param in params {
+            app = syntax::Type::App {
+                constructor: Box::new(app),
+                param: Box::new(param),
+            };
+        }
+        if let Some(last_param) = last_param {
+            app = syntax::Type::App {
+                constructor: Box::new(app),
+                param: Box::new(last_param),
+            }
+        }
+        app
+    },
+};
+
+QuantifiedType: syntax::Type = {
+    <AtomicType>,
+
+    "exists" "{" <param: TypeParam> "}" <body: QuantifiedType> => {
+        syntax::Type::Exists {
+            param,
+            body: Box::new(body),
+        }
+    },
+
+    <arg: AtomicType> "->" <ret: QuantifiedType> => {
+        syntax::Type::Func {
+            params: Vec::new(),
+            arg: Box::new(arg),
+            ret: Box::new(ret),
+        }
+    },
+
+    "forall"
+    "{" <params: (<TypeParam> ";")*> <last_param: TypeParam?> "}"
+    <arg: AtomicType> "->" <ret: QuantifiedType> => {
+        let mut all_params = params;
+        if let Some(last_param) = last_param {
+            all_params.push(last_param);
+        }
+        syntax::Type::Func {
+            params: all_params,
+            arg: Box::new(arg),
+            ret: Box::new(ret),
+        }
+    },
+};
+
+PairType: syntax::Type = {
+    <QuantifiedType>,
+    <left: QuantifiedType> "," <right: PairType> => {
+        syntax::Type::Pair {
+            left: Box::new(left),
+            right: Box::new(right),
+        }
+    },
+};
+
+pub Type: syntax::Type = {
+    <PairType>,
+};
+
 extern {
     type Location = usize;
     type Error = lex::Error;
