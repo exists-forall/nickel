@@ -4,12 +4,20 @@ pub mod lex;
 
 use lalrpop_util::ParseError;
 
+use types;
+
 pub fn ident(s: &str) -> Result<syntax::Ident, ParseError<usize, lex::Token, lex::Error>> {
     grammar::IdentParser::new().parse(lex::Lexer::from_str(s))
 }
 
+pub fn kind(s: &str) -> Result<types::Kind, ParseError<usize, lex::Token, lex::Error>> {
+    grammar::KindParser::new().parse(lex::Lexer::from_str(s))
+}
+
 #[cfg(test)]
 mod test {
+    use std::rc::Rc;
+
     use super::*;
     use super::syntax::Ident;
 
@@ -101,5 +109,50 @@ mod test {
         );
 
         assert!(ident("foo#bar").is_err());
+    }
+
+    #[test]
+    fn test_kind() {
+        assert_eq!(kind("*"), Ok(types::Kind::Type));
+        assert_eq!(kind("Place"), Ok(types::Kind::Place));
+        assert_eq!(kind("Version"), Ok(types::Kind::Version));
+        assert_eq!(
+            kind(
+                "(((( // an embedded comment \n * // another embedded comment \n ))))",
+            ),
+            Ok(types::Kind::Type)
+        );
+        assert_eq!(
+            kind("(*) -> *"),
+            Ok(types::Kind::Constructor {
+                params: Rc::new(vec![types::Kind::Type]),
+                result: Rc::new(types::Kind::Type),
+            })
+        );
+        assert_eq!(
+            kind("(*; Place; Version) -> *"),
+            Ok(types::Kind::Constructor {
+                params: Rc::new(vec![
+                    types::Kind::Type,
+                    types::Kind::Place,
+                    types::Kind::Version,
+                ]),
+                result: Rc::new(types::Kind::Type),
+            })
+        );
+        assert_eq!(
+            kind("(*; (*) -> *; *;) -> Place"),
+            Ok(types::Kind::Constructor {
+                params: Rc::new(vec![
+                    types::Kind::Type,
+                    types::Kind::Constructor {
+                        params: Rc::new(vec![types::Kind::Type]),
+                        result: Rc::new(types::Kind::Type),
+                    },
+                    types::Kind::Type,
+                ]),
+                result: Rc::new(types::Kind::Place),
+            })
+        );
     }
 }

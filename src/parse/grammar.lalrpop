@@ -1,5 +1,8 @@
+use std::rc::Rc;
+
 use super::syntax;
 use super::lex;
+use types;
 
 grammar;
 
@@ -8,6 +11,23 @@ pub Ident: syntax::Ident = {
         syntax::Ident {
             name,
             collision_id: collision_id.unwrap_or(0),
+        }
+    },
+};
+
+pub Kind: types::Kind = {
+    "*" => types::Kind::Type,
+    "Place" => types::Kind::Place,
+    "Version" => types::Kind::Version,
+    "(" <Kind> ")",
+    "(" <params: (<Kind> ";")*> <final_param: Kind?> ")" "->" <result: Kind> => {
+        let mut all_params = params;
+        if let Some(final_param) = final_param {
+            all_params.push(final_param);
+        }
+        types::Kind::Constructor {
+            params: Rc::new(all_params),
+            result: Rc::new(result),
         }
     },
 };
@@ -38,6 +58,8 @@ extern {
         ";" => lex::Token::Semicolon,
         "=" => lex::Token::Equals,
         ":" => lex::Token::Colon,
+        "*" => lex::Token::Star,
+        "->" => lex::Token::Arrow,
 
         "(" => lex::Token::OpenPar,
         ")" => lex::Token::ClosePar,

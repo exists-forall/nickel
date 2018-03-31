@@ -30,6 +30,8 @@ pub enum Token {
     Semicolon,
     Equals,
     Colon,
+    Star,
+    Arrow,
 
     OpenPar,
     ClosePar,
@@ -166,6 +168,14 @@ impl<Chars: Iterator<Item = (usize, char)>> Iterator for Lexer<Chars> {
                         ';' => Token::Semicolon,
                         '=' => Token::Equals,
                         ':' => Token::Colon,
+                        '*' => Token::Star,
+                        '-' => {
+                            if let Some((_, '>')) = self.chars.next() {
+                                Token::Arrow
+                            } else {
+                                return Some(Err(Error::Char(loc, '-')));
+                            }
+                        }
 
                         '(' => Token::OpenPar,
                         ')' => Token::ClosePar,
