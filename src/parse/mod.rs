@@ -16,6 +16,10 @@ pub fn kind(s: &str) -> ParseResult<types::Kind> {
     grammar::KindParser::new().parse(lex::Lexer::from_str(s))
 }
 
+pub fn type_(s: &str) -> ParseResult<syntax::Type> {
+    grammar::TypeParser::new().parse(lex::Lexer::from_str(s))
+}
+
 #[cfg(test)]
 mod test {
     use std::rc::Rc;
@@ -154,6 +158,57 @@ mod test {
                     types::Kind::Type,
                 ]),
                 result: Rc::new(types::Kind::Place),
+            })
+        );
+    }
+
+    fn ty_var(s: &str) -> syntax::Type {
+        syntax::Type::Var {
+            ident: syntax::Ident {
+                name: s.to_owned(),
+                collision_id: 0,
+            },
+        }
+    }
+
+    #[test]
+    fn test_type() {
+        assert_eq!(
+            type_("( // embedded whitespace \n )"),
+            Ok(syntax::Type::Unit)
+        );
+
+        assert_eq!(type_("hello"), Ok(ty_var("hello")));
+
+        assert_eq!(type_("(((((hello)))))"), Ok(ty_var("hello")));
+
+        assert_eq!(
+            type_("foo(bar)"),
+            Ok(syntax::Type::App {
+                constructor: Box::new(ty_var("foo")),
+                param: Box::new(ty_var("bar")),
+            })
+        );
+
+        assert_eq!(
+            type_("foo(bar; baz)"),
+            Ok(syntax::Type::App {
+                constructor: Box::new(syntax::Type::App {
+                    constructor: Box::new(ty_var("foo")),
+                    param: Box::new(ty_var("bar")),
+                }),
+                param: Box::new(ty_var("baz")),
+            })
+        );
+
+        assert_eq!(
+            type_("foo(bar; baz;)"),
+            Ok(syntax::Type::App {
+                constructor: Box::new(syntax::Type::App {
+                    constructor: Box::new(ty_var("foo")),
+                    param: Box::new(ty_var("bar")),
+                }),
+                param: Box::new(ty_var("baz")),
             })
         );
     }
