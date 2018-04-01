@@ -1,8 +1,11 @@
 use std::rc::Rc;
 
+use lalrpop_util::ParseError;
+
 use super::syntax;
 use super::lex;
 use types;
+use expr;
 
 grammar;
 
@@ -110,6 +113,147 @@ PairType: syntax::Type = {
 
 pub Type: syntax::Type = {
     <PairType>,
+};
+
+AtomicExpr: syntax::Expr = {
+    "(" <Expr> ")",
+
+    "(" ")" => syntax::Expr::Unit,
+
+    <ident: Ident> => {
+        syntax::Expr::Var {
+            usage: expr::VarUsage::Copy,
+            ident,
+        }
+    },
+
+    "move" <ident: Ident> => {
+        syntax::Expr::Var {
+            usage: expr::VarUsage::Move,
+            ident,
+        }
+    },
+
+    <callee: AtomicExpr>
+    "{" <type_params: (<Type> ";")*> <last_param: Type?> "}"
+    "(" <arg: Expr> ")" => {
+        let mut all_params = type_params;
+        if let Some(last_param) = last_param {
+            all_params.push(last_param);
+        }
+        syntax::Expr::App {
+            callee: Box::new(callee),
+            type_params: all_params,
+            arg: Box::new(arg),
+        }
+    },
+
+    <callee: AtomicExpr> "(" <arg: Expr> ")" => {
+        syntax::Expr::App {
+            callee: Box::new(callee),
+            type_params: Vec::new(),
+            arg: Box::new(arg),
+        }
+    }
+};
+
+BlockExpr: syntax::Expr = {
+    <AtomicExpr>,
+
+    "func"
+    "{" <type_params: (<TypeParam> ";")*> <last_param: TypeParam?> "}"
+    "(" <arg_name: Ident> ":" <arg_type: Type> ")" "->" <body: BlockExpr> => {
+        let mut all_params = type_params;
+        if let Some(last_param) = last_param {
+            all_params.push(last_param);
+        }
+        syntax::Expr::Func {
+            type_params: all_params,
+            arg_name,
+            arg_type,
+            body: Box::new(body),
+        }
+    },
+
+    "func" "(" <arg_name: Ident> ":" <arg_type: Type> ")" "->" <body: BlockExpr> => {
+        syntax::Expr::Func {
+            type_params: Vec::new(),
+            arg_name,
+            arg_type,
+            body: Box::new(body),
+        }
+    },
+
+    "let" <names: (<Ident> ",")*> <last_name: Ident?> "=" <val: Expr>
+    "in" <body: BlockExpr> =>? {
+        let mut all_names = names;
+        if let Some(last_name) = last_name {
+            all_names.push(last_name);
+        }
+        if all_names.len() > 0 {
+            Ok(syntax::Expr::Let {
+                names: all_names,
+                val: Box::new(val),
+                body: Box::new(body),
+            })
+        } else {
+            Err(ParseError::User { error: lex::Error::Empty })
+        }
+    },
+
+    "let_exists"
+    "{" <type_names: (<Ident> ";")*> <last_name: Ident?> "}"
+    <val_name: Ident> "=" <val: Expr>
+    "in" <body: BlockExpr> =>? {
+        let mut all_names = type_names;
+        if let Some(last_name) = last_name {
+            all_names.push(last_name);
+        }
+        if all_names.len() > 0 {
+            Ok(syntax::Expr::LetExists {
+                type_names: all_names,
+                val_name,
+                val: Box::new(val),
+                body: Box::new(body),
+            })
+        } else {
+            Err(ParseError::User { error: lex::Error::Empty })
+        }
+    },
+
+    "make_exists"
+    "{" <params: (<Ident> "=" <Type> ";")*> <last_param: (<Ident> "=" <Type>)?> "}"
+    <type_body: Type>
+    "of" <body: BlockExpr> =>? {
+        let mut all_params = params;
+        if let Some(last_param) = last_param {
+            all_params.push(last_param);
+        }
+        if all_params.len() > 0 {
+            Ok(syntax::Expr::MakeExists {
+                params: all_params,
+                type_body,
+                body: Box::new(body),
+            })
+        } else {
+            Err(ParseError::User { error: lex::Error::Empty })
+        }
+    },
+};
+
+PairExpr: syntax::Expr = {
+    <BlockExpr> ","?,
+
+    <left: BlockExpr> "," <right: PairExpr> => {
+        syntax::Expr::Pair {
+            left: Box::new(left),
+            right: Box::new(right),
+        }
+    },
+};
+
+pub Expr: syntax::Expr = {
+    <PairExpr>,
 };
 
 extern {

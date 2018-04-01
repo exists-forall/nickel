@@ -6,6 +6,7 @@ use std::collections::HashMap;
 pub enum Error {
     Char(usize, char),
     End,
+    Empty,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
