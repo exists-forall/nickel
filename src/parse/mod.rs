@@ -259,6 +259,17 @@ mod test {
             })
         );
 
+        assert_eq!(
+            type_("foo, bar, baz,"),
+            Ok(syntax::Type::Pair {
+                left: Box::new(ty_var("foo")),
+                right: Box::new(syntax::Type::Pair {
+                    left: Box::new(ty_var("bar")),
+                    right: Box::new(ty_var("baz")),
+                }),
+            })
+        );
+
         // Full example:
 
         assert_eq!(
