@@ -162,13 +162,15 @@ mod test {
         );
     }
 
-    fn ty_var(s: &str) -> syntax::Type {
-        syntax::Type::Var {
-            ident: syntax::Ident {
-                name: s.to_owned(),
-                collision_id: 0,
-            },
+    fn mk_ident(s: &str) -> syntax::Ident {
+        syntax::Ident {
+            name: s.to_owned(),
+            collision_id: 0,
         }
+    }
+
+    fn ty_var(s: &str) -> syntax::Type {
+        syntax::Type::Var { ident: mk_ident(s) }
     }
 
     #[test]
@@ -209,6 +211,76 @@ mod test {
                     param: Box::new(ty_var("bar")),
                 }),
                 param: Box::new(ty_var("baz")),
+            })
+        );
+
+        assert_eq!(
+            type_("exists {t : *} t"),
+            Ok(syntax::Type::Exists {
+                param: syntax::TypeParam {
+                    ident: mk_ident("t"),
+                    kind: types::Kind::Type,
+                },
+                body: Box::new(ty_var("t")),
+            })
+        );
+
+        assert_eq!(
+            type_("foo -> bar"),
+            Ok(syntax::Type::Func {
+                params: Vec::new(),
+                arg: Box::new(ty_var("foo")),
+                ret: Box::new(ty_var("bar")),
+            })
+        );
+
+        assert_eq!(
+            type_("forall {t : *} t -> foo"),
+            Ok(syntax::Type::Func {
+                params: vec![
+                    syntax::TypeParam {
+                        ident: mk_ident("t"),
+                        kind: types::Kind::Type,
+                    },
+                ],
+                arg: Box::new(ty_var("t")),
+                ret: Box::new(ty_var("foo")),
+            })
+        );
+
+        assert_eq!(
+            type_("foo, bar, baz"),
+            Ok(syntax::Type::Pair {
+                left: Box::new(ty_var("foo")),
+                right: Box::new(syntax::Type::Pair {
+                    left: Box::new(ty_var("bar")),
+                    right: Box::new(ty_var("baz")),
+                }),
+            })
+        );
+
+        // Full example:
+
+        assert_eq!(
+            type_("exists {f : (*) -> *} (Functor(f), f(T))"),
+            Ok(syntax::Type::Exists {
+                param: syntax::TypeParam {
+                    ident: mk_ident("f"),
+                    kind: types::Kind::Constructor {
+                        params: Rc::new(vec![types::Kind::Type]),
+                        result: Rc::new(types::Kind::Type),
+                    },
+                },
+                body: Box::new(syntax::Type::Pair {
+                    left: Box::new(syntax::Type::App {
+                        constructor: Box::new(ty_var("Functor")),
+                        param: Box::new(ty_var("f")),
+                    }),
+                    right: Box::new(syntax::Type::App {
+                        constructor: Box::new(ty_var("f")),
+                        param: Box::new(ty_var("T")),
+                    }),
+                }),
             })
         );
     }
