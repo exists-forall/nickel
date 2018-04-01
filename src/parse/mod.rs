@@ -20,12 +20,17 @@ pub fn type_(s: &str) -> ParseResult<syntax::Type> {
     grammar::TypeParser::new().parse(lex::Lexer::from_str(s))
 }
 
+pub fn expr(s: &str) -> ParseResult<syntax::Expr> {
+    grammar::ExprParser::new().parse(lex::Lexer::from_str(s))
+}
+
 #[cfg(test)]
 mod test {
     use std::rc::Rc;
 
     use super::*;
     use super::syntax::Ident;
+    use expr;
 
     fn name(s: &str) -> Result<String, ParseError<usize, lex::Token, lex::Error>> {
         grammar::RawNameParser::new().parse(lex::Lexer::from_str(s))
@@ -291,6 +296,237 @@ mod test {
                         constructor: Box::new(ty_var("f")),
                         param: Box::new(ty_var("T")),
                     }),
+                }),
+            })
+        );
+    }
+
+    fn ex_var(s: &str) -> syntax::Expr {
+        syntax::Expr::Var {
+            usage: expr::VarUsage::Copy,
+            ident: mk_ident(s),
+        }
+    }
+
+    fn ex_move_var(s: &str) -> syntax::Expr {
+        syntax::Expr::Var {
+            usage: expr::VarUsage::Move,
+            ident: mk_ident(s),
+        }
+    }
+
+    #[test]
+    fn test_expr() {
+        assert_eq!(
+            expr("( // embedded whitespace \n )"),
+            Ok(syntax::Expr::Unit),
+        );
+
+        assert_eq!(expr("hello"), Ok(ex_var("hello")));
+
+        assert_eq!(expr("move hello"), Ok(ex_move_var("hello")));
+
+        assert_eq!(expr("((((hello))))"), Ok(ex_var("hello")));
+
+        assert_eq!(
+            expr("hello(move world)"),
+            Ok(syntax::Expr::App {
+                callee: Box::new(ex_var("hello")),
+                type_params: Vec::new(),
+                arg: Box::new(ex_move_var("world")),
+            })
+        );
+
+        assert_eq!(
+            expr("hello{T}(move world)"),
+            Ok(syntax::Expr::App {
+                callee: Box::new(ex_var("hello")),
+                type_params: vec![ty_var("T")],
+                arg: Box::new(ex_move_var("world")),
+            })
+        );
+
+        assert_eq!(
+            expr("hello{T; U}(move world)"),
+            Ok(syntax::Expr::App {
+                callee: Box::new(ex_var("hello")),
+                type_params: vec![ty_var("T"), ty_var("U")],
+                arg: Box::new(ex_move_var("world")),
+            })
+        );
+
+        assert_eq!(
+            expr("hello{T; U;}(move world)"),
+            Ok(syntax::Expr::App {
+                callee: Box::new(ex_var("hello")),
+                type_params: vec![ty_var("T"), ty_var("U")],
+                arg: Box::new(ex_move_var("world")),
+            })
+        );
+
+        assert_eq!(
+            expr("func (x : T) -> move x"),
+            Ok(syntax::Expr::Func {
+                type_params: Vec::new(),
+                arg_name: mk_ident("x"),
+                arg_type: ty_var("T"),
+                body: Box::new(ex_move_var("x")),
+            })
+        );
+
+        assert_eq!(
+            expr("func {T : *} (x : T) -> move x"),
+            Ok(syntax::Expr::Func {
+                type_params: vec![
+                    syntax::TypeParam {
+                        ident: mk_ident("T"),
+                        kind: types::Kind::Type,
+                    },
+                ],
+                arg_name: mk_ident("x"),
+                arg_type: ty_var("T"),
+                body: Box::new(ex_move_var("x")),
+            })
+        );
+
+        assert_eq!(
+            expr("func {T : *; U : *} (x : T) -> move x"),
+            Ok(syntax::Expr::Func {
+                type_params: vec![
+                    syntax::TypeParam {
+                        ident: mk_ident("T"),
+                        kind: types::Kind::Type,
+                    },
+                    syntax::TypeParam {
+                        ident: mk_ident("U"),
+                        kind: types::Kind::Type,
+                    },
+                ],
+                arg_name: mk_ident("x"),
+                arg_type: ty_var("T"),
+                body: Box::new(ex_move_var("x")),
+            })
+        );
+
+        assert_eq!(
+            expr("func {T : *; U : *;} (x : T) -> move x"),
+            Ok(syntax::Expr::Func {
+                type_params: vec![
+                    syntax::TypeParam {
+                        ident: mk_ident("T"),
+                        kind: types::Kind::Type,
+                    },
+                    syntax::TypeParam {
+                        ident: mk_ident("U"),
+                        kind: types::Kind::Type,
+                    },
+                ],
+                arg_name: mk_ident("x"),
+                arg_type: ty_var("T"),
+                body: Box::new(ex_move_var("x")),
+            })
+        );
+
+        assert_eq!(
+            expr("let x = move y in move x"),
+            Ok(syntax::Expr::Let {
+                names: vec![mk_ident("x")],
+                val: Box::new(ex_move_var("y")),
+                body: Box::new(ex_move_var("x")),
+            })
+        );
+
+        assert_eq!(
+            expr("let x, y = move z in ()"),
+            Ok(syntax::Expr::Let {
+                names: vec![mk_ident("x"), mk_ident("y")],
+                val: Box::new(ex_move_var("z")),
+                body: Box::new(syntax::Expr::Unit),
+            })
+        );
+
+        assert_eq!(
+            expr("let x, y, = move z in ()"),
+            Ok(syntax::Expr::Let {
+                names: vec![mk_ident("x"), mk_ident("y")],
+                val: Box::new(ex_move_var("z")),
+                body: Box::new(syntax::Expr::Unit),
+            })
+        );
+
+        assert_eq!(
+            expr("let_exists {T} x = move y in move x"),
+            Ok(syntax::Expr::LetExists {
+                type_names: vec![mk_ident("T")],
+                val_name: mk_ident("x"),
+                val: Box::new(ex_move_var("y")),
+                body: Box::new(ex_move_var("x")),
+            })
+        );
+
+        assert_eq!(
+            expr("let_exists {T; U} x = move y in move x"),
+            Ok(syntax::Expr::LetExists {
+                type_names: vec![mk_ident("T"), mk_ident("U")],
+                val_name: mk_ident("x"),
+                val: Box::new(ex_move_var("y")),
+                body: Box::new(ex_move_var("x")),
+            })
+        );
+
+        assert_eq!(
+            expr("let_exists {T; U;} x = move y in move x"),
+            Ok(syntax::Expr::LetExists {
+                type_names: vec![mk_ident("T"), mk_ident("U")],
+                val_name: mk_ident("x"),
+                val: Box::new(ex_move_var("y")),
+                body: Box::new(ex_move_var("x")),
+            })
+        );
+
+        assert_eq!(
+            expr("make_exists {T = Foo} T of move x"),
+            Ok(syntax::Expr::MakeExists {
+                params: vec![(mk_ident("T"), ty_var("Foo"))],
+                type_body: ty_var("T"),
+                body: Box::new(ex_move_var("x")),
+            })
+        );
+
+        assert_eq!(
+            expr("make_exists {T = Foo; U = Bar;} T -> U of move f"),
+            Ok(syntax::Expr::MakeExists {
+                params: vec![
+                    (mk_ident("T"), ty_var("Foo")),
+                    (mk_ident("U"), ty_var("Bar")),
+                ],
+                type_body: syntax::Type::Func {
+                    params: Vec::new(),
+                    arg: Box::new(ty_var("T")),
+                    ret: Box::new(ty_var("U")),
+                },
+                body: Box::new(ex_move_var("f")),
+            })
+        );
+
+        assert_eq!(
+            expr("foo, bar, baz"),
+            Ok(syntax::Expr::Pair {
+                left: Box::new(ex_var("foo")),
+                right: Box::new(syntax::Expr::Pair {
+                    left: Box::new(ex_var("bar")),
+                    right: Box::new(ex_var("baz")),
+                }),
+            })
+        );
+
+        assert_eq!(
+            expr("foo, bar, baz,"),
+            Ok(syntax::Expr::Pair {
+                left: Box::new(ex_var("foo")),
+                right: Box::new(syntax::Expr::Pair {
+                    left: Box::new(ex_var("bar")),
+                    right: Box::new(ex_var("baz")),
                 }),
             })
         );
