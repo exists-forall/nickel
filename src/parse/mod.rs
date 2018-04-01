@@ -1,6 +1,7 @@
 pub mod syntax;
 pub mod grammar;
 pub mod lex;
+pub mod names;
 
 use lalrpop_util::ParseError;
 
