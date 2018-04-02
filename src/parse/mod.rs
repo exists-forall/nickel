@@ -552,8 +552,8 @@ mod test {
             expr(s).map_err(|_| ())?,
         ).map_err(|_| ())?;
 
-        assert_eq!(result.free_vars(), 0);
-        assert_eq!(result.free_types(), 0);
+        assert_eq!(result.free_vars(), free_vars.len());
+        assert_eq!(result.free_types(), free_types.len());
 
         Ok(result)
     }
