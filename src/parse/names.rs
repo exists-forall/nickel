@@ -13,6 +13,7 @@ pub struct Names {
     scopes: Vec<Scope>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
     Shadow(Ident),
     NotFound(Ident),
@@ -62,5 +63,39 @@ impl Names {
         } else {
             Err(Error::NotFound(name.clone()))
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use test_utils::parse_syntax::*;
+
+    #[test]
+    fn add_simple() {
+        let mut names = Names::new();
+        assert_eq!(names.index_count(), 0);
+
+        assert!(names.add_name(mk_ident("hello")).is_ok());
+        assert_eq!(names.index_count(), 1);
+        assert_eq!(names.get_index(&mk_ident("hello")), Ok(0));
+
+        assert!(names.add_name(mk_ident("world")).is_ok());
+        assert_eq!(names.index_count(), 2);
+        assert_eq!(names.get_index(&mk_ident("hello")), Ok(0));
+        assert_eq!(names.get_index(&mk_ident("world")), Ok(1));
+
+        assert!(names.add_name(mk_ident_collision("hello", 1)).is_ok());
+        assert_eq!(names.index_count(), 3);
+        assert_eq!(names.get_index(&mk_ident("hello")), Ok(0));
+        assert_eq!(names.get_index(&mk_ident("world")), Ok(1));
+        assert_eq!(names.get_index(&mk_ident_collision("hello", 1)), Ok(2));
+    }
+
+    #[test]
+    fn shadow() {
+        let mut names = Names::new();
+        assert!(names.add_name(mk_ident("hello")).is_ok());
+        assert!(names.add_name(mk_ident("hello")).is_err());
     }
 }

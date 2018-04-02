@@ -32,6 +32,7 @@ mod test {
     use super::*;
     use super::syntax::Ident;
     use expr;
+    use test_utils::parse_syntax::*;
 
     fn name(s: &str) -> Result<String, ParseError<usize, lex::Token, lex::Error>> {
         grammar::RawNameParser::new().parse(lex::Lexer::from_str(s))
@@ -166,13 +167,6 @@ mod test {
                 result: Rc::new(types::Kind::Place),
             })
         );
-    }
-
-    fn mk_ident(s: &str) -> syntax::Ident {
-        syntax::Ident {
-            name: s.to_owned(),
-            collision_id: 0,
-        }
     }
 
     fn ty_var(s: &str) -> syntax::Type {
