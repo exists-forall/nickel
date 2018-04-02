@@ -37,14 +37,18 @@ pub fn convert_type(
     ty: syntax::Type,
 ) -> Result<types::Type<Rc<String>>, Error> {
     match ty {
-        syntax::Type::Unit => Ok(types::Type::from_content(
-            types::TypeContent::Unit { free: type_names.index_count() },
-        )),
+        syntax::Type::Unit => {
+            Ok(types::Type::from_content(
+                types::TypeContent::Unit { free: type_names.index_count() },
+            ))
+        }
 
-        syntax::Type::Var { ident } => Ok(types::Type::from_content(types::TypeContent::Var {
-            free: type_names.index_count(),
-            index: type_names.get_index(&ident)?,
-        })),
+        syntax::Type::Var { ident } => {
+            Ok(types::Type::from_content(types::TypeContent::Var {
+                free: type_names.index_count(),
+                index: type_names.get_index(&ident)?,
+            }))
+        }
 
         syntax::Type::Exists { param, body } => {
             type_names.push_scope();
@@ -98,17 +102,21 @@ pub fn convert_type(
 
 pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc<String>>, Error> {
     match ex {
-        syntax::Expr::Unit => Ok(expr::Expr::from_content(expr::ExprContent::Unit {
-            free_vars: ctx.var_names.index_count(),
-            free_types: ctx.type_names.index_count(),
-        })),
+        syntax::Expr::Unit => {
+            Ok(expr::Expr::from_content(expr::ExprContent::Unit {
+                free_vars: ctx.var_names.index_count(),
+                free_types: ctx.type_names.index_count(),
+            }))
+        }
 
-        syntax::Expr::Var { usage, ident } => Ok(expr::Expr::from_content(expr::ExprContent::Var {
-            usage,
-            free_vars: ctx.var_names.index_count(),
-            free_types: ctx.type_names.index_count(),
-            index: ctx.var_names.get_index(&ident)?,
-        })),
+        syntax::Expr::Var { usage, ident } => {
+            Ok(expr::Expr::from_content(expr::ExprContent::Var {
+                usage,
+                free_vars: ctx.var_names.index_count(),
+                free_types: ctx.type_names.index_count(),
+                index: ctx.var_names.get_index(&ident)?,
+            }))
+        }
 
         syntax::Expr::Func {
             type_params,
