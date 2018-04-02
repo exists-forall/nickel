@@ -7,8 +7,8 @@ use super::names::{Names, Error};
 
 #[derive(Clone, Debug)]
 pub struct Context {
-    var_names: Names,
-    type_names: Names,
+    pub var_names: Names,
+    pub type_names: Names,
 }
 
 fn add_type_params(type_names: &mut Names, params: &[syntax::TypeParam]) -> Result<(), Error> {
@@ -169,6 +169,8 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
         }
 
         syntax::Expr::Let { names, val, body } => {
+            let converted_val = convert_expr(ctx, *val)?;
+
             ctx.var_names.push_scope();
 
             for name in &names {
@@ -177,7 +179,7 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
 
             let result = expr::Expr::from_content(expr::ExprContent::Let {
                 names: Rc::new(names.into_iter().map(|name| Rc::new(name.name)).collect()),
-                val: convert_expr(ctx, *val)?,
+                val: converted_val,
                 body: convert_expr(ctx, *body)?,
             });
 

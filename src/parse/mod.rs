@@ -527,4 +527,67 @@ mod test {
             })
         );
     }
+
+    // Parse an expression and convert it to an internal representation
+    fn conv(
+        free_vars: &[&str],
+        free_types: &[&str],
+        s: &str,
+    ) -> Result<expr::Expr<Rc<String>>, ()> {
+        let mut var_names = names::Names::new();
+        for var in free_vars {
+            var_names.add_name(mk_ident(var)).map_err(|_| ())?;
+        }
+
+        let mut type_names = names::Names::new();
+        for ty in free_types {
+            type_names.add_name(mk_ident(ty)).map_err(|_| ())?;
+        }
+
+        let result = to_internal::convert_expr(
+            &mut to_internal::Context {
+                var_names,
+                type_names,
+            },
+            expr(s).map_err(|_| ())?,
+        ).map_err(|_| ())?;
+
+        assert_eq!(result.free_vars(), 0);
+        assert_eq!(result.free_types(), 0);
+
+        Ok(result)
+    }
+
+    #[test]
+    fn convert_expr() {
+        use test_utils::expr as ex;
+        use test_utils::types as ty;
+        use expr::VarUsage as Usage;
+
+        assert_eq!(conv(&[], &[], "()"), Ok(ex::unit(0, 0)));
+
+        assert_eq!(
+            conv(&[], &[], "let x = () in move x"),
+            Ok(ex::let_vars_named(
+                &["x"],
+                ex::unit(0, 0),
+                ex::var(Usage::Move, 1, 0, 0),
+            ))
+        );
+
+        assert_eq!(
+            conv(&[], &[], "let x, y, z = () in (x, y, z)"),
+            Ok(ex::let_vars_named(
+                &["x", "y", "z"],
+                ex::unit(0, 0),
+                ex::pair(
+                    ex::var(Usage::Copy, 3, 0, 0),
+                    ex::pair(
+                        ex::var(Usage::Copy, 3, 0, 1),
+                        ex::var(Usage::Copy, 3, 0, 2),
+                    ),
+                ),
+            ))
+        );
+    }
 }
