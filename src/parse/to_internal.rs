@@ -194,6 +194,8 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             val,
             body,
         } => {
+            let converted_val = convert_expr(ctx, *val)?;
+
             ctx.var_names.push_scope();
             ctx.type_names.push_scope();
 
@@ -211,7 +213,7 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
                         .collect(),
                 ),
                 val_name: Rc::new(val_name.name),
-                val: convert_expr(ctx, *val)?,
+                val: converted_val,
                 body: convert_expr(ctx, *body)?,
             });
 

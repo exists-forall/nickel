@@ -567,6 +567,63 @@ mod test {
         assert_eq!(conv(&[], &[], "()"), Ok(ex::unit(0, 0)));
 
         assert_eq!(
+            conv(&["foo"], &[], "foo"),
+            Ok(ex::var(Usage::Copy, 1, 0, 0))
+        );
+
+        assert_eq!(
+            conv(&["foo"], &[], "move foo"),
+            Ok(ex::var(Usage::Move, 1, 0, 0))
+        );
+
+        assert_eq!(
+            conv(&[], &["T"], "func (x : T) -> move x"),
+            Ok(ex::func_named(
+                "x",
+                ty::var(1, 0),
+                ex::var(Usage::Move, 1, 1, 0),
+            ))
+        );
+
+        assert_eq!(
+            conv(&[], &[], "func {T : *} (x : T) -> move x"),
+            Ok(ex::func_forall_named(
+                &[("T", types::Kind::Type)],
+                "x",
+                ty::var(1, 0),
+                ex::var(Usage::Move, 1, 1, 0),
+            ))
+        );
+
+        assert_eq!(
+            conv(&["foo", "bar"], &[], "foo(move bar)"),
+            Ok(ex::app(
+                ex::var(Usage::Copy, 2, 0, 0),
+                ex::var(Usage::Move, 2, 0, 1),
+            ))
+        );
+
+        assert_eq!(
+            conv(&["foo", "bar"], &["T", "U"], "foo{T; U}(move bar)"),
+            Ok(ex::app_forall(
+                ex::var(Usage::Copy, 2, 2, 0),
+                &[ty::var(2, 0), ty::var(2, 1)],
+                ex::var(Usage::Move, 2, 2, 1),
+            ))
+        );
+
+        assert_eq!(
+            conv(&["foo", "bar", "baz"], &[], "foo, bar, baz"),
+            Ok(ex::pair(
+                ex::var(Usage::Copy, 3, 0, 0),
+                ex::pair(
+                    ex::var(Usage::Copy, 3, 0, 1),
+                    ex::var(Usage::Copy, 3, 0, 2),
+                ),
+            ))
+        );
+
+        assert_eq!(
             conv(&[], &[], "let x = () in move x"),
             Ok(ex::let_vars_named(
                 &["x"],
@@ -586,6 +643,40 @@ mod test {
                         ex::var(Usage::Copy, 3, 0, 1),
                         ex::var(Usage::Copy, 3, 0, 2),
                     ),
+                ),
+            ))
+        );
+
+        assert_eq!(
+            conv(
+                &["foo", "bar"],
+                &[],
+                "let_exists {T; U} x = move foo in bar{T; U}(move x)",
+            ),
+            Ok(ex::let_exists_named(
+                &["T", "U"],
+                "x",
+                ex::var(Usage::Move, 2, 0, 0),
+                ex::app_forall(
+                    ex::var(Usage::Copy, 3, 2, 1),
+                    &[ty::var(2, 0), ty::var(2, 1)],
+                    ex::var(Usage::Move, 3, 2, 2),
+                ),
+            ))
+        );
+
+        assert_eq!(
+            conv(
+                &["foo", "bar"],
+                &["Foo", "Bar"],
+                "make_exists {T = Foo; U = Bar} (T, U) of (move foo, move bar)",
+            ),
+            Ok(ex::make_exists_named(
+                &[("T", ty::var(2, 0)), ("U", ty::var(2, 1))],
+                ty::pair(ty::var(4, 2), ty::var(4, 3)),
+                ex::pair(
+                    ex::var(Usage::Move, 2, 2, 0),
+                    ex::var(Usage::Move, 2, 2, 1),
                 ),
             ))
         );
