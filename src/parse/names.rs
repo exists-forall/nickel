@@ -98,4 +98,34 @@ mod test {
         assert!(names.add_name(mk_ident("hello")).is_ok());
         assert!(names.add_name(mk_ident("hello")).is_err());
     }
+
+    #[test]
+    fn scoped() {
+        let mut names = Names::new();
+
+        assert!(names.add_name(mk_ident("hello")).is_ok());
+
+        names.push_scope();
+
+        assert_eq!(names.index_count(), 1);
+        assert_eq!(names.get_index(&mk_ident("hello")), Ok(0));
+
+        assert!(names.add_name(mk_ident("world")).is_ok());
+        assert_eq!(names.index_count(), 2);
+        assert_eq!(names.get_index(&mk_ident("hello")), Ok(0));
+        assert_eq!(names.get_index(&mk_ident("world")), Ok(1));
+
+        assert!(names.add_name(mk_ident("foo")).is_ok());
+        assert_eq!(names.index_count(), 3);
+        assert_eq!(names.get_index(&mk_ident("hello")), Ok(0));
+        assert_eq!(names.get_index(&mk_ident("world")), Ok(1));
+        assert_eq!(names.get_index(&mk_ident("foo")), Ok(2));
+
+        names.pop_scope();
+
+        assert_eq!(names.index_count(), 1);
+        assert_eq!(names.get_index(&mk_ident("hello")), Ok(0));
+        assert!(names.get_index(&mk_ident("world")).is_err());
+        assert!(names.get_index(&mk_ident("foo")).is_err());
+    }
 }
