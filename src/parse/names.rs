@@ -2,6 +2,9 @@ use std::collections::HashMap;
 
 use super::syntax::Ident;
 
+// TODO: Determine if this should use `Rc<String>` instead of `String` to avoid unnecessary deep
+// clones in to_indices.
+
 #[derive(Clone, Debug)]
 struct Scope {
     added_names: Vec<Ident>,
