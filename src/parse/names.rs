@@ -100,6 +100,14 @@ mod test {
     }
 
     #[test]
+    fn not_found() {
+        let mut names = Names::new();
+        assert!(names.add_name(mk_ident("hello")).is_ok());
+        assert!(names.get_index(&mk_ident("world")).is_err());
+        assert!(names.get_index(&mk_ident_collision("hello", 1)).is_err());
+    }
+
+    #[test]
     fn scoped() {
         let mut names = Names::new();
 
