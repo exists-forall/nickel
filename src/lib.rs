@@ -8,3 +8,4 @@ pub mod expr;
 pub mod pretty_syntax;
 pub mod test_utils;
 pub mod parse;
+pub mod typecheck;
