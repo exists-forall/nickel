@@ -75,3 +75,178 @@ pub fn equiv<Name: Clone>(ty1: Type<Name>, ty2: Type<Name>) -> bool {
         (_, _) => false,
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use test_utils::types::*;
+
+    #[test]
+    #[should_panic]
+    fn incompatible_free() {
+        equiv(unit(0), unit(1));
+    }
+
+    #[test]
+    fn equiv_unit() {
+        assert!(equiv(unit(0), unit(0)));
+        assert!(equiv(unit(5), unit(5)));
+    }
+
+    #[test]
+    fn equiv_var() {
+        assert!(equiv(var(1, 0), var(1, 0)));
+        assert!(equiv(var(5, 2), var(5, 2)));
+        assert!(!equiv(var(5, 2), var(5, 3)));
+    }
+
+    #[test]
+    fn equiv_exists() {
+        assert!(equiv(
+            exists_named("x", Kind::Type, var(2, 0)),
+            exists_named("x", Kind::Type, var(2, 0)),
+        ));
+
+        assert!(equiv(
+            exists_named("name", Kind::Type, var(2, 0)),
+            exists_named("different_name", Kind::Type, var(2, 0)),
+        ));
+
+        assert!(!equiv(
+            exists_named("x", Kind::Type, var(2, 0)),
+            exists_named("x", Kind::Place, var(2, 0)),
+        ));
+
+        assert!(!equiv(
+            exists_named("x", Kind::Type, var(2, 0)),
+            exists_named("x", Kind::Type, var(2, 1)),
+        ));
+    }
+
+    #[test]
+    fn equiv_func() {
+        assert!(equiv(
+            func(var(2, 0), var(2, 1)),
+            func(var(2, 0), var(2, 1)),
+        ));
+
+        assert!(!equiv(
+            func(var(3, 0), var(3, 2)),
+            func(var(3, 1), var(3, 2)),
+        ));
+
+        assert!(!equiv(
+            func(var(3, 0), var(3, 1)),
+            func(var(3, 0), var(3, 2)),
+        ));
+    }
+
+    #[test]
+    fn equiv_forall() {
+        assert!(equiv(
+            func_forall_named(
+                &[("T", Kind::Type), ("U", Kind::Place)],
+                var(2, 0),
+                var(2, 1),
+            ),
+            func_forall_named(
+                &[("T", Kind::Type), ("U", Kind::Place)],
+                var(2, 0),
+                var(2, 1),
+            ),
+        ));
+
+        assert!(equiv(
+            func_forall_named(
+                &[("T", Kind::Type), ("U", Kind::Place)],
+                var(2, 0),
+                var(2, 1),
+            ),
+            func_forall_named(
+                &[("V", Kind::Type), ("W", Kind::Place)],
+                var(2, 0),
+                var(2, 1),
+            ),
+        ));
+
+        assert!(!equiv(
+            func_forall_named(
+                &[("T", Kind::Type), ("U", Kind::Place)],
+                var(2, 0),
+                var(2, 1),
+            ),
+            func_forall_named(
+                &[("T", Kind::Type), ("U", Kind::Place), ("V", Kind::Type)],
+                var(3, 0),
+                var(3, 1),
+            ),
+        ));
+
+        assert!(!equiv(
+            func_forall_named(
+                &[("T", Kind::Type), ("U", Kind::Version)],
+                var(2, 0),
+                var(2, 1),
+            ),
+            func_forall_named(
+                &[("T", Kind::Place), ("U", Kind::Version)],
+                var(2, 0),
+                var(2, 1),
+            ),
+        ));
+
+        assert!(!equiv(
+            func_forall_named(
+                &[("T", Kind::Type), ("U", Kind::Version)],
+                var(3, 0),
+                var(3, 2),
+            ),
+            func_forall_named(
+                &[("T", Kind::Place), ("U", Kind::Version)],
+                var(3, 1),
+                var(3, 2),
+            ),
+        ));
+
+        assert!(!equiv(
+            func_forall_named(
+                &[("T", Kind::Type), ("U", Kind::Version)],
+                var(3, 0),
+                var(3, 1),
+            ),
+            func_forall_named(
+                &[("T", Kind::Place), ("U", Kind::Version)],
+                var(3, 0),
+                var(3, 2),
+            ),
+        ));
+    }
+
+    #[test]
+    fn equiv_pair() {
+        assert!(equiv(
+            pair(var(2, 0), var(2, 1)),
+            pair(var(2, 0), var(2, 1)),
+        ));
+
+        assert!(!equiv(
+            pair(var(3, 0), var(3, 2)),
+            pair(var(3, 1), var(3, 2)),
+        ));
+
+        assert!(!equiv(
+            pair(var(3, 0), var(3, 1)),
+            pair(var(3, 0), var(3, 2)),
+        ));
+    }
+
+    #[test]
+    fn equiv_app() {
+        assert!(equiv(app(var(2, 0), var(2, 1)), app(var(2, 0), var(2, 1))));
+
+        assert!(!equiv(app(var(3, 0), var(3, 2)), app(var(3, 1), var(3, 2))));
+
+        assert!(!equiv(app(var(3, 0), var(3, 1)), app(var(3, 0), var(3, 2))));
+    }
+}
