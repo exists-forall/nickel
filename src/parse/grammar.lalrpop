@@ -6,6 +6,7 @@ use super::syntax;
 use super::lex;
 use types;
 use expr;
+use utils::rc_vec_view::RcVecView;
 
 grammar;
 
@@ -29,7 +30,7 @@ pub Kind: types::Kind = {
             all_params.push(final_param);
         }
         types::Kind::Constructor {
-            params: Rc::new(all_params),
+            params: RcVecView::new(Rc::new(all_params)),
             result: Rc::new(result),
         }
     },

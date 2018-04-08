@@ -12,6 +12,7 @@ use nickel::test_utils::types;
 use nickel::test_utils::expr::*;
 use nickel::pretty_syntax::names::Names;
 use nickel::pretty_syntax::expr::{Place, to_pretty};
+use nickel::utils::rc_vec_view::RcVecView;
 
 fn print_expr(var_names: &mut Names, type_names: &mut Names, expr: Expr<Rc<String>>) {
     write(
@@ -215,7 +216,7 @@ fn main() {
                 (
                     "f",
                     Kind::Constructor {
-                        params: Rc::new(vec![Kind::Type]),
+                        params: RcVecView::new(Rc::new(vec![Kind::Type])),
                         result: Rc::new(Kind::Type),
                     },
                 ),

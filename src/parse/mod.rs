@@ -34,6 +34,7 @@ mod test {
     use super::syntax::Ident;
     use expr;
     use test_utils::parse_syntax::*;
+    use utils::rc_vec_view::RcVecView;
 
     fn name(s: &str) -> Result<String, ParseError<usize, lex::Token, lex::Error>> {
         grammar::RawNameParser::new().parse(lex::Lexer::from_str(s))
@@ -139,32 +140,32 @@ mod test {
         assert_eq!(
             kind("(*) -> *"),
             Ok(types::Kind::Constructor {
-                params: Rc::new(vec![types::Kind::Type]),
+                params: RcVecView::new(Rc::new(vec![types::Kind::Type])),
                 result: Rc::new(types::Kind::Type),
             })
         );
         assert_eq!(
             kind("(*; Place; Version) -> *"),
             Ok(types::Kind::Constructor {
-                params: Rc::new(vec![
+                params: RcVecView::new(Rc::new(vec![
                     types::Kind::Type,
                     types::Kind::Place,
                     types::Kind::Version,
-                ]),
+                ])),
                 result: Rc::new(types::Kind::Type),
             })
         );
         assert_eq!(
             kind("(*; (*) -> *; *;) -> Place"),
             Ok(types::Kind::Constructor {
-                params: Rc::new(vec![
+                params: RcVecView::new(Rc::new(vec![
                     types::Kind::Type,
                     types::Kind::Constructor {
-                        params: Rc::new(vec![types::Kind::Type]),
+                        params: RcVecView::new(Rc::new(vec![types::Kind::Type])),
                         result: Rc::new(types::Kind::Type),
                     },
                     types::Kind::Type,
-                ]),
+                ])),
                 result: Rc::new(types::Kind::Place),
             })
         );
@@ -279,7 +280,7 @@ mod test {
                 param: syntax::TypeParam {
                     ident: mk_ident("f"),
                     kind: types::Kind::Constructor {
-                        params: Rc::new(vec![types::Kind::Type]),
+                        params: RcVecView::new(Rc::new(vec![types::Kind::Type])),
                         result: Rc::new(types::Kind::Type),
                     },
                 },

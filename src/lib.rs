@@ -3,8 +3,7 @@ extern crate lalrpop_util;
 #[macro_use]
 extern crate lazy_static;
 
-mod utils;
-
+pub mod utils;
 pub mod types;
 pub mod expr;
 pub mod pretty_syntax;

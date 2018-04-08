@@ -1,12 +1,14 @@
 use std::rc::Rc;
 
+use utils::rc_vec_view::RcVecView;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Kind {
     Type,
     Place,
     Version,
     Constructor {
-        params: Rc<Vec<Kind>>,
+        params: RcVecView<Kind>,
         result: Rc<Kind>,
     },
 }
