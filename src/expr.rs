@@ -9,7 +9,7 @@ pub enum VarUsage {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum ExprDataInner<TAnnot, Name> {
+enum ExprDataInner<TAnnot, EAnnot, Name> {
     Unit,
 
     Var { usage: VarUsage, index: usize },
@@ -18,47 +18,48 @@ enum ExprDataInner<TAnnot, Name> {
         type_params: Rc<Vec<TypeParam<Name>>>,
         arg_name: Name,
         arg_type: AnnotType<TAnnot, Name>,
-        body: ExprData<TAnnot, Name>,
+        body: ExprData<TAnnot, EAnnot, Name>,
     },
 
     App {
-        callee: ExprData<TAnnot, Name>,
+        callee: ExprData<TAnnot, EAnnot, Name>,
         type_params: Rc<Vec<AnnotType<TAnnot, Name>>>,
-        arg: ExprData<TAnnot, Name>,
+        arg: ExprData<TAnnot, EAnnot, Name>,
     },
 
     Pair {
-        left: ExprData<TAnnot, Name>,
-        right: ExprData<TAnnot, Name>,
+        left: ExprData<TAnnot, EAnnot, Name>,
+        right: ExprData<TAnnot, EAnnot, Name>,
     },
 
     Let {
         names: Rc<Vec<Name>>,
-        val: ExprData<TAnnot, Name>,
-        body: ExprData<TAnnot, Name>,
+        val: ExprData<TAnnot, EAnnot, Name>,
+        body: ExprData<TAnnot, EAnnot, Name>,
     },
 
     LetExists {
         type_names: Rc<Vec<Name>>,
         val_name: Name,
-        val: ExprData<TAnnot, Name>,
-        body: ExprData<TAnnot, Name>,
+        val: ExprData<TAnnot, EAnnot, Name>,
+        body: ExprData<TAnnot, EAnnot, Name>,
     },
 
     MakeExists {
         params: Rc<Vec<(Name, AnnotType<TAnnot, Name>)>>,
         type_body: AnnotType<TAnnot, Name>,
-        body: ExprData<TAnnot, Name>,
+        body: ExprData<TAnnot, EAnnot, Name>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct ExprData<TAnnot, Name> {
-    inner: Rc<ExprDataInner<TAnnot, Name>>,
+struct ExprData<TAnnot, EAnnot, Name> {
+    annot: EAnnot,
+    inner: Rc<ExprDataInner<TAnnot, EAnnot, Name>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ExprContent<TAnnot, Name> {
+pub enum ExprContent<TAnnot, EAnnot, Name> {
     Unit { free_vars: usize, free_types: usize },
 
     Var {
@@ -72,50 +73,50 @@ pub enum ExprContent<TAnnot, Name> {
         type_params: Rc<Vec<TypeParam<Name>>>,
         arg_name: Name,
         arg_type: AnnotType<TAnnot, Name>,
-        body: AnnotExpr<TAnnot, Name>,
+        body: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 
     App {
-        callee: AnnotExpr<TAnnot, Name>,
+        callee: AnnotExpr<TAnnot, EAnnot, Name>,
         type_params: Rc<Vec<AnnotType<TAnnot, Name>>>,
-        arg: AnnotExpr<TAnnot, Name>,
+        arg: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 
     Pair {
-        left: AnnotExpr<TAnnot, Name>,
-        right: AnnotExpr<TAnnot, Name>,
+        left: AnnotExpr<TAnnot, EAnnot, Name>,
+        right: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 
     Let {
         names: Rc<Vec<Name>>,
-        val: AnnotExpr<TAnnot, Name>,
-        body: AnnotExpr<TAnnot, Name>,
+        val: AnnotExpr<TAnnot, EAnnot, Name>,
+        body: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 
     LetExists {
         type_names: Rc<Vec<Name>>,
         val_name: Name,
-        val: AnnotExpr<TAnnot, Name>,
-        body: AnnotExpr<TAnnot, Name>,
+        val: AnnotExpr<TAnnot, EAnnot, Name>,
+        body: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 
     MakeExists {
         params: Rc<Vec<(Name, AnnotType<TAnnot, Name>)>>,
         type_body: AnnotType<TAnnot, Name>,
-        body: AnnotExpr<TAnnot, Name>,
+        body: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct AnnotExpr<TAnnot, Name> {
+pub struct AnnotExpr<TAnnot, EAnnot, Name> {
     free_vars: usize,
     free_types: usize,
-    data: ExprData<TAnnot, Name>,
+    data: ExprData<TAnnot, EAnnot, Name>,
 }
 
-pub type Expr<Name> = AnnotExpr<(), Name>;
+pub type Expr<Name> = AnnotExpr<(), (), Name>;
 
-impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
+impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> {
     pub fn free_vars(&self) -> usize {
         self.free_vars
     }
@@ -124,7 +125,11 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
         self.free_types
     }
 
-    pub fn from_content(content: ExprContent<TAnnot, Name>) -> Self {
+    pub fn annot(&self) -> EAnnot {
+        self.data.annot.clone()
+    }
+
+    pub fn from_content_annot(annot: EAnnot, content: ExprContent<TAnnot, EAnnot, Name>) -> Self {
         match content {
             ExprContent::Unit {
                 free_vars,
@@ -133,7 +138,10 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
                 AnnotExpr {
                     free_vars,
                     free_types,
-                    data: ExprData { inner: Rc::new(ExprDataInner::Unit) },
+                    data: ExprData {
+                        annot,
+                        inner: Rc::new(ExprDataInner::Unit),
+                    },
                 }
             }
 
@@ -147,7 +155,10 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
                 AnnotExpr {
                     free_vars,
                     free_types,
-                    data: ExprData { inner: Rc::new(ExprDataInner::Var { usage, index }) },
+                    data: ExprData {
+                        annot,
+                        inner: Rc::new(ExprDataInner::Var { usage, index }),
+                    },
                 }
             }
 
@@ -177,6 +188,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
                     free_vars: body.free_vars - 1,
                     free_types: body.free_types - type_params.len(),
                     data: ExprData {
+                        annot,
                         inner: Rc::new(ExprDataInner::Func {
                             type_params,
                             arg_name,
@@ -196,6 +208,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
                     free_vars: arg.free_vars,
                     free_types: arg.free_types,
                     data: ExprData {
+                        annot,
                         inner: Rc::new(ExprDataInner::App {
                             callee: callee.data,
                             type_params,
@@ -222,6 +235,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
                     free_vars: left.free_vars,
                     free_types: left.free_types,
                     data: ExprData {
+                        annot,
                         inner: Rc::new(ExprDataInner::Pair {
                             left: left.data,
                             right: right.data,
@@ -249,6 +263,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
                     free_vars: val.free_vars,
                     free_types: val.free_types,
                     data: ExprData {
+                        annot,
                         inner: Rc::new(ExprDataInner::Let {
                             names,
                             val: val.data,
@@ -282,6 +297,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
                     free_vars: val.free_vars,
                     free_types: val.free_types,
                     data: ExprData {
+                        annot,
                         inner: Rc::new(ExprDataInner::LetExists {
                             type_names,
                             val_name,
@@ -317,6 +333,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
                     free_vars: body.free_vars,
                     free_types: body.free_types,
                     data: ExprData {
+                        annot,
                         inner: Rc::new(ExprDataInner::MakeExists {
                             params,
                             type_body,
@@ -328,7 +345,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
         }
     }
 
-    pub fn to_content(&self) -> ExprContent<TAnnot, Name> {
+    pub fn to_content(&self) -> ExprContent<TAnnot, EAnnot, Name> {
         match &*self.data.inner {
             &ExprDataInner::Unit => {
                 ExprContent::Unit {
@@ -460,5 +477,11 @@ impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
                 }
             }
         }
+    }
+}
+
+impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, (), Name> {
+    pub fn from_content(content: ExprContent<TAnnot, (), Name>) -> Self {
+        AnnotExpr::from_content_annot((), content)
     }
 }
