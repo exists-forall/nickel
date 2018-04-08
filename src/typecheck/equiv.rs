@@ -1,6 +1,6 @@
 use types::*;
 
-fn equiv_kind(kind1: &Kind, kind2: &Kind) -> bool {
+pub fn equiv_kind(kind1: &Kind, kind2: &Kind) -> bool {
     // Currently, because kinds contain no variables with display name information, they are
     // equivalent iff they are syntactically identical.  This may change in the future.
     kind1 == kind2
