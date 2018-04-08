@@ -43,7 +43,7 @@ impl<Name: Clone> Context<Name> {
         })
     }
 
-    pub fn pop_sope(&mut self) {
+    pub fn pop_scope(&mut self) {
         let scope = self.scopes.pop().expect("Stack underflow");
         self.type_kinds.truncate(scope.type_count);
         self.vars.truncate(scope.var_count);
