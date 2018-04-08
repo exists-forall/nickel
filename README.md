@@ -25,14 +25,14 @@ construction. Eventually, the Nickel toolchain will include:
 - A standalone Nickel **type checker**
 - Utilities for converting between multiple **equivalent representations** of
   Nickel programs, including:
-  - A **human readable**, human writeable plain text format resembling a
+  - A **human readable**, human writable plain text format resembling a
     high level functional programming language
   - A **JSON** representation which can be easily generated or parsed from any
     language.
   - A compact **binary** format suitable for storing and distributing Nickel
     code.
 - An optional **standard library** providing type and memory safe wrappers
-  around platform funtionality like memory management and IO.
+  around platform functionality like memory management and IO.
 - A graphical **debugger** for exploring the runtime behavior of Nickel
   programs.  Because Nickel is purely functional, this debugger can easily step
   backwards as well as forwards.
