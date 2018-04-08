@@ -18,72 +18,83 @@ pub struct TypeParam<Name> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum TypeDataInner<Name> {
+enum TypeDataInner<TAnnot, Name> {
     Unit,
     Var { index: usize },
     Exists {
         param: TypeParam<Name>,
-        body: TypeData<Name>,
+        body: TypeData<TAnnot, Name>,
     },
     Func {
         params: Rc<Vec<TypeParam<Name>>>,
-        arg: TypeData<Name>,
-        ret: TypeData<Name>,
+        arg: TypeData<TAnnot, Name>,
+        ret: TypeData<TAnnot, Name>,
     },
     Pair {
-        left: TypeData<Name>,
-        right: TypeData<Name>,
+        left: TypeData<TAnnot, Name>,
+        right: TypeData<TAnnot, Name>,
     },
     /// Represents both partial and (segments of) total type applications
     App {
-        constructor: TypeData<Name>,
-        param: TypeData<Name>,
+        constructor: TypeData<TAnnot, Name>,
+        param: TypeData<TAnnot, Name>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct TypeData<Name> {
+struct TypeData<TAnnot, Name> {
+    annot: TAnnot,
     max_index: usize, // exclusive upper bound
-    inner: Rc<TypeDataInner<Name>>,
+    inner: Rc<TypeDataInner<TAnnot, Name>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TypeContent<Name> {
+pub enum TypeContent<TAnnot, Name> {
     Unit { free: usize },
     Var { free: usize, index: usize },
     Exists {
         param: TypeParam<Name>,
-        body: Type<Name>,
+        body: AnnotType<TAnnot, Name>,
     },
     Func {
         params: Rc<Vec<TypeParam<Name>>>,
-        arg: Type<Name>,
-        ret: Type<Name>,
+        arg: AnnotType<TAnnot, Name>,
+        ret: AnnotType<TAnnot, Name>,
     },
-    Pair { left: Type<Name>, right: Type<Name> },
+    Pair {
+        left: AnnotType<TAnnot, Name>,
+        right: AnnotType<TAnnot, Name>,
+    },
     App {
-        constructor: Type<Name>,
-        param: Type<Name>,
+        constructor: AnnotType<TAnnot, Name>,
+        param: AnnotType<TAnnot, Name>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Type<Name> {
+pub struct AnnotType<TAnnot, Name> {
     free: usize,
-    data: TypeData<Name>,
+    data: TypeData<TAnnot, Name>,
 }
 
-impl<Name: Clone> Type<Name> {
+pub type Type<Name> = AnnotType<(), Name>;
+
+impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
     pub fn free(&self) -> usize {
         self.free
     }
 
-    pub fn from_content(content: TypeContent<Name>) -> Self {
+    pub fn annot(&self) -> TAnnot {
+        self.data.annot.clone()
+    }
+
+    pub fn from_content_annot(annot: TAnnot, content: TypeContent<TAnnot, Name>) -> Self {
         match content {
             TypeContent::Unit { free } => {
-                Type {
+                AnnotType {
                     free,
                     data: TypeData {
+                        annot,
                         max_index: 0,
                         inner: Rc::new(TypeDataInner::Unit),
                     },
@@ -92,9 +103,10 @@ impl<Name: Clone> Type<Name> {
 
             TypeContent::Var { free, index } => {
                 assert!(index < free);
-                Type {
+                AnnotType {
                     free,
                     data: TypeData {
+                        annot,
                         max_index: index + 1,
                         inner: Rc::new(TypeDataInner::Var { index }),
                     },
@@ -103,9 +115,10 @@ impl<Name: Clone> Type<Name> {
 
             TypeContent::Exists { param, body } => {
                 assert!(1 <= body.free, "Must have at least one free variable");
-                Type {
+                AnnotType {
                     free: body.free - 1,
                     data: TypeData {
+                        annot,
                         max_index: body.data.max_index,
                         inner: Rc::new(TypeDataInner::Exists {
                             param: param.clone(),
@@ -121,9 +134,10 @@ impl<Name: Clone> Type<Name> {
                     params.len() <= arg.free,
                     "Must have at least {} free variables",
                 );
-                Type {
+                AnnotType {
                     free: arg.free - params.len(),
                     data: TypeData {
+                        annot,
                         max_index: arg.data.max_index.max(ret.data.max_index),
                         inner: Rc::new(TypeDataInner::Func {
                             params: params,
@@ -136,9 +150,10 @@ impl<Name: Clone> Type<Name> {
 
             TypeContent::Pair { left, right } => {
                 assert_eq!(left.free, right.free, "Free variables do not match");
-                Type {
+                AnnotType {
                     free: left.free,
                     data: TypeData {
+                        annot,
                         max_index: left.data.max_index.max(right.data.max_index),
                         inner: Rc::new(TypeDataInner::Pair {
                             left: left.data,
@@ -150,9 +165,10 @@ impl<Name: Clone> Type<Name> {
 
             TypeContent::App { constructor, param } => {
                 assert_eq!(constructor.free, param.free, "Free variables do not match");
-                Type {
+                AnnotType {
                     free: constructor.free,
                     data: TypeData {
+                        annot,
                         max_index: constructor.data.max_index.max(param.data.max_index),
                         inner: Rc::new(TypeDataInner::App {
                             constructor: constructor.data,
@@ -164,7 +180,7 @@ impl<Name: Clone> Type<Name> {
         }
     }
 
-    pub fn to_content(&self) -> TypeContent<Name> {
+    pub fn to_content(&self) -> TypeContent<TAnnot, Name> {
         match &*self.data.inner {
             &TypeDataInner::Unit => TypeContent::Unit { free: self.free },
 
@@ -181,7 +197,7 @@ impl<Name: Clone> Type<Name> {
             } => {
                 TypeContent::Exists {
                     param: param.clone(),
-                    body: Type {
+                    body: AnnotType {
                         free: self.free + 1,
                         data: body.clone(),
                     },
@@ -195,11 +211,11 @@ impl<Name: Clone> Type<Name> {
             } => {
                 TypeContent::Func {
                     params: params.clone(),
-                    arg: Type {
+                    arg: AnnotType {
                         free: self.free + params.len(),
                         data: arg.clone(),
                     },
-                    ret: Type {
+                    ret: AnnotType {
                         free: self.free + params.len(),
                         data: ret.clone(),
                     },
@@ -211,11 +227,11 @@ impl<Name: Clone> Type<Name> {
                 ref right,
             } => {
                 TypeContent::Pair {
-                    left: Type {
+                    left: AnnotType {
                         free: self.free,
                         data: left.clone(),
                     },
-                    right: Type {
+                    right: AnnotType {
                         free: self.free,
                         data: right.clone(),
                     },
@@ -227,17 +243,23 @@ impl<Name: Clone> Type<Name> {
                 ref param,
             } => {
                 TypeContent::App {
-                    constructor: Type {
+                    constructor: AnnotType {
                         free: self.free,
                         data: constructor.clone(),
                     },
-                    param: Type {
+                    param: AnnotType {
                         free: self.free,
                         data: param.clone(),
                     },
                 }
             }
         }
+    }
+}
+
+impl<Name: Clone> Type<Name> {
+    pub fn from_content(content: TypeContent<(), Name>) -> Self {
+        AnnotType::from_content_annot((), content)
     }
 
     fn increment_above(&self, index: usize, inc_by: usize) -> Self {
