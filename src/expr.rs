@@ -9,7 +9,7 @@ pub enum VarUsage {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum ExprDataInner<Name> {
+enum ExprDataInner<TAnnot, Name> {
     Unit,
 
     Var { usage: VarUsage, index: usize },
@@ -17,48 +17,48 @@ enum ExprDataInner<Name> {
     Func {
         type_params: Rc<Vec<TypeParam<Name>>>,
         arg_name: Name,
-        arg_type: Type<Name>,
-        body: ExprData<Name>,
+        arg_type: AnnotType<TAnnot, Name>,
+        body: ExprData<TAnnot, Name>,
     },
 
     App {
-        callee: ExprData<Name>,
-        type_params: Rc<Vec<Type<Name>>>,
-        arg: ExprData<Name>,
+        callee: ExprData<TAnnot, Name>,
+        type_params: Rc<Vec<AnnotType<TAnnot, Name>>>,
+        arg: ExprData<TAnnot, Name>,
     },
 
     Pair {
-        left: ExprData<Name>,
-        right: ExprData<Name>,
+        left: ExprData<TAnnot, Name>,
+        right: ExprData<TAnnot, Name>,
     },
 
     Let {
         names: Rc<Vec<Name>>,
-        val: ExprData<Name>,
-        body: ExprData<Name>,
+        val: ExprData<TAnnot, Name>,
+        body: ExprData<TAnnot, Name>,
     },
 
     LetExists {
         type_names: Rc<Vec<Name>>,
         val_name: Name,
-        val: ExprData<Name>,
-        body: ExprData<Name>,
+        val: ExprData<TAnnot, Name>,
+        body: ExprData<TAnnot, Name>,
     },
 
     MakeExists {
-        params: Rc<Vec<(Name, Type<Name>)>>,
-        type_body: Type<Name>,
-        body: ExprData<Name>,
+        params: Rc<Vec<(Name, AnnotType<TAnnot, Name>)>>,
+        type_body: AnnotType<TAnnot, Name>,
+        body: ExprData<TAnnot, Name>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct ExprData<Name> {
-    inner: Rc<ExprDataInner<Name>>,
+struct ExprData<TAnnot, Name> {
+    inner: Rc<ExprDataInner<TAnnot, Name>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ExprContent<Name> {
+pub enum ExprContent<TAnnot, Name> {
     Unit { free_vars: usize, free_types: usize },
 
     Var {
@@ -71,46 +71,51 @@ pub enum ExprContent<Name> {
     Func {
         type_params: Rc<Vec<TypeParam<Name>>>,
         arg_name: Name,
-        arg_type: Type<Name>,
-        body: Expr<Name>,
+        arg_type: AnnotType<TAnnot, Name>,
+        body: AnnotExpr<TAnnot, Name>,
     },
 
     App {
-        callee: Expr<Name>,
-        type_params: Rc<Vec<Type<Name>>>,
-        arg: Expr<Name>,
+        callee: AnnotExpr<TAnnot, Name>,
+        type_params: Rc<Vec<AnnotType<TAnnot, Name>>>,
+        arg: AnnotExpr<TAnnot, Name>,
     },
 
-    Pair { left: Expr<Name>, right: Expr<Name> },
+    Pair {
+        left: AnnotExpr<TAnnot, Name>,
+        right: AnnotExpr<TAnnot, Name>,
+    },
 
     Let {
         names: Rc<Vec<Name>>,
-        val: Expr<Name>,
-        body: Expr<Name>,
+        val: AnnotExpr<TAnnot, Name>,
+        body: AnnotExpr<TAnnot, Name>,
     },
 
     LetExists {
         type_names: Rc<Vec<Name>>,
         val_name: Name,
-        val: Expr<Name>,
-        body: Expr<Name>,
+        val: AnnotExpr<TAnnot, Name>,
+        body: AnnotExpr<TAnnot, Name>,
     },
 
     MakeExists {
-        params: Rc<Vec<(Name, Type<Name>)>>,
-        type_body: Type<Name>,
-        body: Expr<Name>,
+        params: Rc<Vec<(Name, AnnotType<TAnnot, Name>)>>,
+        type_body: AnnotType<TAnnot, Name>,
+        body: AnnotExpr<TAnnot, Name>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Expr<Name> {
+pub struct AnnotExpr<TAnnot, Name> {
     free_vars: usize,
     free_types: usize,
-    data: ExprData<Name>,
+    data: ExprData<TAnnot, Name>,
 }
 
-impl<Name: Clone> Expr<Name> {
+pub type Expr<Name> = AnnotExpr<(), Name>;
+
+impl<TAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, Name> {
     pub fn free_vars(&self) -> usize {
         self.free_vars
     }
@@ -119,13 +124,13 @@ impl<Name: Clone> Expr<Name> {
         self.free_types
     }
 
-    pub fn from_content(content: ExprContent<Name>) -> Self {
+    pub fn from_content(content: ExprContent<TAnnot, Name>) -> Self {
         match content {
             ExprContent::Unit {
                 free_vars,
                 free_types,
             } => {
-                Expr {
+                AnnotExpr {
                     free_vars,
                     free_types,
                     data: ExprData { inner: Rc::new(ExprDataInner::Unit) },
@@ -139,7 +144,7 @@ impl<Name: Clone> Expr<Name> {
                 index,
             } => {
                 assert!(index < free_vars);
-                Expr {
+                AnnotExpr {
                     free_vars,
                     free_types,
                     data: ExprData { inner: Rc::new(ExprDataInner::Var { usage, index }) },
@@ -168,7 +173,7 @@ impl<Name: Clone> Expr<Name> {
                     "Must have at least one free term variable",
                 );
 
-                Expr {
+                AnnotExpr {
                     free_vars: body.free_vars - 1,
                     free_types: body.free_types - type_params.len(),
                     data: ExprData {
@@ -187,7 +192,7 @@ impl<Name: Clone> Expr<Name> {
                 type_params,
                 arg,
             } => {
-                Expr {
+                AnnotExpr {
                     free_vars: arg.free_vars,
                     free_types: arg.free_types,
                     data: ExprData {
@@ -213,7 +218,7 @@ impl<Name: Clone> Expr<Name> {
                     "Free type variables do not match",
                 );
 
-                Expr {
+                AnnotExpr {
                     free_vars: left.free_vars,
                     free_types: left.free_types,
                     data: ExprData {
@@ -240,7 +245,7 @@ impl<Name: Clone> Expr<Name> {
                     "Free term variables do not match",
                 );
 
-                Expr {
+                AnnotExpr {
                     free_vars: val.free_vars,
                     free_types: val.free_types,
                     data: ExprData {
@@ -273,7 +278,7 @@ impl<Name: Clone> Expr<Name> {
                     "Free term variables do not match",
                 );
 
-                Expr {
+                AnnotExpr {
                     free_vars: val.free_vars,
                     free_types: val.free_types,
                     data: ExprData {
@@ -308,7 +313,7 @@ impl<Name: Clone> Expr<Name> {
                     );
                 }
 
-                Expr {
+                AnnotExpr {
                     free_vars: body.free_vars,
                     free_types: body.free_types,
                     data: ExprData {
@@ -323,7 +328,7 @@ impl<Name: Clone> Expr<Name> {
         }
     }
 
-    pub fn to_content(&self) -> ExprContent<Name> {
+    pub fn to_content(&self) -> ExprContent<TAnnot, Name> {
         match &*self.data.inner {
             &ExprDataInner::Unit => {
                 ExprContent::Unit {
@@ -351,7 +356,7 @@ impl<Name: Clone> Expr<Name> {
                     type_params: type_params.clone(),
                     arg_name: arg_name.clone(),
                     arg_type: arg_type.clone(),
-                    body: Expr {
+                    body: AnnotExpr {
                         free_types: self.free_types + type_params.len(),
                         free_vars: self.free_vars + 1,
                         data: body.clone(),
@@ -365,13 +370,13 @@ impl<Name: Clone> Expr<Name> {
                 ref arg,
             } => {
                 ExprContent::App {
-                    callee: Expr {
+                    callee: AnnotExpr {
                         free_types: self.free_types,
                         free_vars: self.free_vars,
                         data: callee.clone(),
                     },
                     type_params: type_params.clone(),
-                    arg: Expr {
+                    arg: AnnotExpr {
                         free_types: self.free_types,
                         free_vars: self.free_vars,
                         data: arg.clone(),
@@ -384,12 +389,12 @@ impl<Name: Clone> Expr<Name> {
                 ref right,
             } => {
                 ExprContent::Pair {
-                    left: Expr {
+                    left: AnnotExpr {
                         free_types: self.free_types,
                         free_vars: self.free_vars,
                         data: left.clone(),
                     },
-                    right: Expr {
+                    right: AnnotExpr {
                         free_types: self.free_types,
                         free_vars: self.free_vars,
                         data: right.clone(),
@@ -404,12 +409,12 @@ impl<Name: Clone> Expr<Name> {
             } => {
                 ExprContent::Let {
                     names: names.clone(),
-                    val: Expr {
+                    val: AnnotExpr {
                         free_types: self.free_types,
                         free_vars: self.free_vars,
                         data: val.clone(),
                     },
-                    body: Expr {
+                    body: AnnotExpr {
                         free_types: self.free_types,
                         free_vars: self.free_vars + names.len(),
                         data: body.clone(),
@@ -426,12 +431,12 @@ impl<Name: Clone> Expr<Name> {
                 ExprContent::LetExists {
                     type_names: type_names.clone(),
                     val_name: val_name.clone(),
-                    val: Expr {
+                    val: AnnotExpr {
                         free_types: self.free_types,
                         free_vars: self.free_vars,
                         data: val.clone(),
                     },
-                    body: Expr {
+                    body: AnnotExpr {
                         free_types: self.free_types + type_names.len(),
                         free_vars: self.free_vars + 1,
                         data: body.clone(),
@@ -447,7 +452,7 @@ impl<Name: Clone> Expr<Name> {
                 ExprContent::MakeExists {
                     params: params.clone(),
                     type_body: type_body.clone(),
-                    body: Expr {
+                    body: AnnotExpr {
                         free_vars: self.free_vars,
                         free_types: self.free_types,
                         data: body.clone(),
