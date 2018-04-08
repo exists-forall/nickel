@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::ops::{Range, Deref};
+use std::cmp::{PartialEq, Eq};
 
 /// A view into a particular range of a reference-counted vector.
 ///
@@ -40,6 +41,14 @@ impl<T> Deref for RcVecView<T> {
     }
 }
 
+impl<T: PartialEq> PartialEq for RcVecView<T> {
+    fn eq(&self, other: &RcVecView<T>) -> bool {
+        (&self as &[T]) == (&other as &[T])
+    }
+}
+
+impl<T: Eq> Eq for RcVecView<T> {}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -51,11 +60,15 @@ mod test {
 
         let view2 = view1.slice(0..view1.len());
         assert_eq!(&*view2, &*view1);
+        assert_eq!(view2, view1);
 
         let view3 = view1.slice(1..4);
         assert_eq!(&*view3, &["bar", "baz", "biz"]);
 
         let view4 = view3.slice(1..3);
         assert_eq!(&*view4, &["baz", "biz"]);
+
+        let view5 = RcVecView::new(Rc::new(vec!["baz", "biz"]));
+        assert_eq!(view4, view5);
     }
 }
