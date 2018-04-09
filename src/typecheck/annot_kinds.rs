@@ -45,7 +45,7 @@ pub fn annot_kinds<Name: Clone>(
 
         TypeContent::Exists { param, body } => {
             ctx.push_scope();
-            ctx.add_type_kind(param.kind.clone());
+            ctx.add_type_kind(param.name.clone(), param.kind.clone());
             let body_annot = annot_kinds(ctx, body)?;
             ctx.pop_scope();
 
@@ -70,7 +70,7 @@ pub fn annot_kinds<Name: Clone>(
         TypeContent::Func { params, arg, ret } => {
             ctx.push_scope();
             for param in params.iter().cloned() {
-                ctx.add_type_kind(param.kind);
+                ctx.add_type_kind(param.name, param.kind);
             }
             let arg_annot = annot_kinds(ctx, arg)?;
             let ret_annot = annot_kinds(ctx, ret)?;
@@ -212,12 +212,16 @@ mod test {
         let _ = kind_of(ctx, unit(10));
     }
 
+    fn add_kind(ctx: &mut Context<Rc<String>>, kind: Kind) {
+        ctx.add_type_kind(Rc::new("".to_owned()), kind);
+    }
+
     #[test]
     fn unit_kind() {
         let ctx = &mut Context::new();
         assert_kind(ctx, unit(0), Kind::Type);
         for _ in 0..10 {
-            ctx.add_type_kind(Kind::Type);
+            add_kind(ctx, Kind::Type);
         }
         assert_kind(ctx, unit(10), Kind::Type);
     }
@@ -225,8 +229,8 @@ mod test {
     #[test]
     fn var_kind() {
         let ctx = &mut Context::new();
-        ctx.add_type_kind(Kind::Place);
-        ctx.add_type_kind(Kind::Type);
+        add_kind(ctx, Kind::Place);
+        add_kind(ctx, Kind::Type);
         assert_kind(ctx, var(2, 0), Kind::Place);
         assert_kind(ctx, var(2, 1), Kind::Type);
     }
@@ -234,8 +238,8 @@ mod test {
     #[test]
     fn exists_kind() {
         let ctx = &mut Context::new();
-        ctx.add_type_kind(Kind::Type);
-        ctx.add_type_kind(Kind::Place);
+        add_kind(ctx, Kind::Type);
+        add_kind(ctx, Kind::Place);
 
         assert_kind(ctx, exists(Kind::Version, var(3, 0)), Kind::Type);
         assert_kind(ctx, exists(Kind::Type, var(3, 2)), Kind::Type);
@@ -247,8 +251,8 @@ mod test {
     #[test]
     fn func_kind() {
         let ctx = &mut Context::new();
-        ctx.add_type_kind(Kind::Type);
-        ctx.add_type_kind(Kind::Place);
+        add_kind(ctx, Kind::Type);
+        add_kind(ctx, Kind::Place);
 
         assert_kind(ctx, func(var(2, 0), var(2, 0)), Kind::Type);
 
@@ -287,8 +291,8 @@ mod test {
     #[test]
     fn pair_kind() {
         let ctx = &mut Context::new();
-        ctx.add_type_kind(Kind::Type);
-        ctx.add_type_kind(Kind::Place);
+        add_kind(ctx, Kind::Type);
+        add_kind(ctx, Kind::Place);
 
         assert_kind(ctx, pair(var(2, 0), var(2, 0)), Kind::Type);
 
@@ -299,16 +303,22 @@ mod test {
     #[test]
     fn app_kind() {
         let ctx = &mut Context::new();
-        ctx.add_type_kind(Kind::Type);
-        ctx.add_type_kind(Kind::Place);
-        ctx.add_type_kind(Kind::Constructor {
-            params: RcVecView::new(Rc::new(vec![Kind::Place])),
-            result: Rc::new(Kind::Type),
-        });
-        ctx.add_type_kind(Kind::Constructor {
-            params: RcVecView::new(Rc::new(vec![Kind::Type, Kind::Version])),
-            result: Rc::new(Kind::Place),
-        });
+        add_kind(ctx, Kind::Type);
+        add_kind(ctx, Kind::Place);
+        add_kind(
+            ctx,
+            Kind::Constructor {
+                params: RcVecView::new(Rc::new(vec![Kind::Place])),
+                result: Rc::new(Kind::Type),
+            },
+        );
+        add_kind(
+            ctx,
+            Kind::Constructor {
+                params: RcVecView::new(Rc::new(vec![Kind::Type, Kind::Version])),
+                result: Rc::new(Kind::Place),
+            },
+        );
 
         assert_kind(ctx, app(var(4, 2), var(4, 1)), Kind::Type);
 

@@ -15,14 +15,21 @@ pub enum Usage {
 }
 
 #[derive(Clone, Debug)]
+struct TypeBinding<Name> {
+    name: Name,
+    kind: Kind,
+}
+
+#[derive(Clone, Debug)]
 struct Var<Name> {
+    name: Name,
     ty: Type<Name>,
     usage: Usage,
 }
 
 #[derive(Clone, Debug)]
 pub struct Context<Name> {
-    type_kinds: Vec<Kind>,
+    types: Vec<TypeBinding<Name>>,
     vars: Vec<Var<Name>>,
     scopes: Vec<Scope>,
 }
@@ -30,7 +37,7 @@ pub struct Context<Name> {
 impl<Name: Clone> Context<Name> {
     pub fn new() -> Self {
         Context {
-            type_kinds: Vec::new(),
+            types: Vec::new(),
             vars: Vec::new(),
             scopes: Vec::new(),
         }
@@ -38,14 +45,14 @@ impl<Name: Clone> Context<Name> {
 
     pub fn push_scope(&mut self) {
         self.scopes.push(Scope {
-            type_count: self.type_kinds.len(),
+            type_count: self.types.len(),
             var_count: self.vars.len(),
         })
     }
 
     pub fn pop_scope(&mut self) {
         let scope = self.scopes.pop().expect("Stack underflow");
-        self.type_kinds.truncate(scope.type_count);
+        self.types.truncate(scope.type_count);
         self.vars.truncate(scope.var_count);
     }
 
@@ -58,15 +65,23 @@ impl<Name: Clone> Context<Name> {
     }
 
     pub fn type_index_count(&self) -> usize {
-        self.type_kinds.len()
+        self.types.len()
     }
 
     pub fn var_index_count(&self) -> usize {
         self.vars.len()
     }
 
+    pub fn type_name(&self, index: usize) -> &Name {
+        &self.types[index].name
+    }
+
+    pub fn var_name(&self, index: usize) -> &Name {
+        &self.vars[index].name
+    }
+
     pub fn type_kind(&self, index: usize) -> &Kind {
-        &self.type_kinds[index]
+        &self.types[index].kind
     }
 
     pub fn var_type(&self, index: usize) -> &Type<Name> {
@@ -87,12 +102,13 @@ impl<Name: Clone> Context<Name> {
         }
     }
 
-    pub fn add_type_kind(&mut self, kind: Kind) {
-        self.type_kinds.push(kind);
+    pub fn add_type_kind(&mut self, name: Name, kind: Kind) {
+        self.types.push(TypeBinding { name, kind });
     }
 
-    pub fn add_var_unmoved(&mut self, ty: Type<Name>) {
+    pub fn add_var_unmoved(&mut self, name: Name, ty: Type<Name>) {
         self.vars.push(Var {
+            name,
             ty,
             usage: Usage::Unmoved,
         });
