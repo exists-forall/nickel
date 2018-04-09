@@ -57,6 +57,14 @@ impl<Name: Clone> Context<Name> {
         }
     }
 
+    pub fn type_index_count(&self) -> usize {
+        self.type_kinds.len()
+    }
+
+    pub fn var_index_count(&self) -> usize {
+        self.vars.len()
+    }
+
     pub fn type_kind(&self, index: usize) -> &Kind {
         &self.type_kinds[index]
     }
