@@ -3,17 +3,24 @@ use super::context::Context;
 use types::*;
 
 #[derive(Clone, Debug)]
-pub enum Error {
-    KindMismatch,
-    TypeMismatch,
-    MovedTwice,
-    NotMoved,
+pub enum Error<Name> {
+    Mismatch {
+        context: Context<Name>,
+        in_type: Type<Name>,
+        expected: Kind,
+        actual: Kind,
+    },
+    ExpectedConstructor {
+        context: Context<Name>,
+        in_type: Type<Name>,
+        actual: Kind,
+    },
 }
 
 pub fn annot_kinds<Name: Clone>(
     ctx: &mut Context<Name>,
     ty: Type<Name>,
-) -> Result<AnnotType<Kind, Name>, Error> {
+) -> Result<AnnotType<Kind, Name>, Error<Name>> {
     assert_eq!(
         ty.free(),
         ctx.type_index_count(),
@@ -51,7 +58,12 @@ pub fn annot_kinds<Name: Clone>(
                     },
                 ))
             } else {
-                Err(Error::KindMismatch)
+                Err(Error::Mismatch {
+                    context: ctx.clone(),
+                    in_type: ty,
+                    expected: Kind::Type,
+                    actual: body_annot.annot(),
+                })
             }
         }
 
@@ -64,39 +76,63 @@ pub fn annot_kinds<Name: Clone>(
             let ret_annot = annot_kinds(ctx, ret)?;
             ctx.pop_scope();
 
-            if equiv_kind(&arg_annot.annot(), &Kind::Type) &&
-                equiv_kind(&ret_annot.annot(), &Kind::Type)
-            {
-                Ok(AnnotType::from_content_annot(
-                    Kind::Type,
-                    TypeContent::Func {
-                        params,
-                        arg: arg_annot,
-                        ret: ret_annot,
-                    },
-                ))
-            } else {
-                Err(Error::KindMismatch)
+            if !equiv_kind(&arg_annot.annot(), &Kind::Type) {
+                return Err(Error::Mismatch {
+                    context: ctx.clone(),
+                    in_type: ty,
+                    expected: Kind::Type,
+                    actual: arg_annot.annot(),
+                });
             }
+
+            if !equiv_kind(&ret_annot.annot(), &Kind::Type) {
+                return Err(Error::Mismatch {
+                    context: ctx.clone(),
+                    in_type: ty,
+                    expected: Kind::Type,
+                    actual: ret_annot.annot(),
+                });
+            }
+
+            Ok(AnnotType::from_content_annot(
+                Kind::Type,
+                TypeContent::Func {
+                    params,
+                    arg: arg_annot,
+                    ret: ret_annot,
+                },
+            ))
         }
 
         TypeContent::Pair { left, right } => {
             let left_annot = annot_kinds(ctx, left)?;
             let right_annot = annot_kinds(ctx, right)?;
 
-            if equiv_kind(&left_annot.annot(), &Kind::Type) &&
-                equiv_kind(&right_annot.annot(), &Kind::Type)
-            {
-                Ok(AnnotType::from_content_annot(
-                    Kind::Type,
-                    TypeContent::Pair {
-                        left: left_annot,
-                        right: right_annot,
-                    },
-                ))
-            } else {
-                Err(Error::KindMismatch)
+            if !equiv_kind(&left_annot.annot(), &Kind::Type) {
+                return Err(Error::Mismatch {
+                    context: ctx.clone(),
+                    in_type: ty,
+                    expected: Kind::Type,
+                    actual: left_annot.annot(),
+                });
             }
+
+            if !equiv_kind(&right_annot.annot(), &Kind::Type) {
+                return Err(Error::Mismatch {
+                    context: ctx.clone(),
+                    in_type: ty,
+                    expected: Kind::Type,
+                    actual: right_annot.annot(),
+                });
+            }
+
+            Ok(AnnotType::from_content_annot(
+                Kind::Type,
+                TypeContent::Pair {
+                    left: left_annot,
+                    right: right_annot,
+                },
+            ))
         }
 
         TypeContent::App { constructor, param } => {
@@ -107,7 +143,12 @@ pub fn annot_kinds<Name: Clone>(
                 if let Kind::Constructor { params, result } = constructor_annot.annot() {
                     debug_assert!(params.len() > 0);
                     if !equiv_kind(&params[0], &param_annot.annot()) {
-                        return Err(Error::KindMismatch);
+                        return Err(Error::Mismatch {
+                            context: ctx.clone(),
+                            in_type: ty,
+                            expected: params[0].clone(),
+                            actual: param_annot.annot(),
+                        });
                     }
                     if params.len() == 1 {
                         (&result as &Kind).clone()
@@ -118,7 +159,11 @@ pub fn annot_kinds<Name: Clone>(
                         }
                     }
                 } else {
-                    return Err(Error::KindMismatch);
+                    return Err(Error::ExpectedConstructor {
+                        context: ctx.clone(),
+                        in_type: ty,
+                        actual: constructor_annot.annot(),
+                    });
                 };
 
             Ok(AnnotType::from_content_annot(
@@ -135,13 +180,14 @@ pub fn annot_kinds<Name: Clone>(
 #[cfg(test)]
 mod test {
     use std::rc::Rc;
+    use std::fmt::Debug;
 
     use super::*;
     use super::super::equiv::equiv;
     use test_utils::types::*;
     use utils::rc_vec_view::RcVecView;
 
-    fn kind_of<Name: Clone>(ctx: &mut Context<Name>, ty: Type<Name>) -> Result<Kind, Error> {
+    fn kind_of<Name: Clone>(ctx: &mut Context<Name>, ty: Type<Name>) -> Result<Kind, Error<Name>> {
         let ty_annot = annot_kinds(ctx, ty.clone())?;
         assert!(
             equiv(ty_annot.clone(), ty.clone()),
@@ -150,7 +196,7 @@ mod test {
         Ok(ty_annot.annot())
     }
 
-    fn assert_kind<Name: Clone>(ctx: &mut Context<Name>, ty: Type<Name>, kind: Kind) {
+    fn assert_kind<Name: Clone + Debug>(ctx: &mut Context<Name>, ty: Type<Name>, kind: Kind) {
         assert!(equiv_kind(&kind_of(ctx, ty).unwrap(), &kind));
     }
 
