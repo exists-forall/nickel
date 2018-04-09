@@ -6,7 +6,10 @@ pub fn equiv_kind(kind1: &Kind, kind2: &Kind) -> bool {
     kind1 == kind2
 }
 
-pub fn equiv<Name: Clone>(ty1: Type<Name>, ty2: Type<Name>) -> bool {
+pub fn equiv<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
+    ty1: AnnotType<TAnnot1, Name1>,
+    ty2: AnnotType<TAnnot2, Name2>,
+) -> bool {
     assert_eq!(
         ty1.free(),
         ty2.free(),
