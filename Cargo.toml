@@ -1,5 +1,5 @@
 [package]
-name = "nickel"
+name = "nickel-lang"
 version = "0.1.0"
 authors = ["William Brandon <hypercube97@gmail.com>"]
 build = "build.rs"

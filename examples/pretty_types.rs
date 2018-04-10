@@ -1,14 +1,14 @@
-extern crate nickel;
+extern crate nickel_lang;
 extern crate pretty_trait;
 
 use std::rc::Rc;
 
 use pretty_trait::println_simple;
 
-use nickel::types::*;
-use nickel::test_utils::types::*;
-use nickel::pretty_syntax::names::Names;
-use nickel::pretty_syntax::types::{Place, to_pretty};
+use nickel_lang::types::*;
+use nickel_lang::test_utils::types::*;
+use nickel_lang::pretty_syntax::names::Names;
+use nickel_lang::pretty_syntax::types::{Place, to_pretty};
 
 fn print_type(names: &mut Names, ty: Type<Rc<String>>) {
     println_simple(&to_pretty(names, Place::Root, ty));

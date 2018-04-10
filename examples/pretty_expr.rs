@@ -1,4 +1,4 @@
-extern crate nickel;
+extern crate nickel_lang;
 extern crate pretty_trait;
 
 use std::rc::Rc;
@@ -6,13 +6,13 @@ use std::io::stdout;
 
 use pretty_trait::write;
 
-use nickel::types::*;
-use nickel::expr::*;
-use nickel::test_utils::types;
-use nickel::test_utils::expr::*;
-use nickel::pretty_syntax::names::Names;
-use nickel::pretty_syntax::expr::{Place, to_pretty};
-use nickel::utils::rc_vec_view::RcVecView;
+use nickel_lang::types::*;
+use nickel_lang::expr::*;
+use nickel_lang::test_utils::types;
+use nickel_lang::test_utils::expr::*;
+use nickel_lang::pretty_syntax::names::Names;
+use nickel_lang::pretty_syntax::expr::{Place, to_pretty};
+use nickel_lang::utils::rc_vec_view::RcVecView;
 
 fn print_expr(var_names: &mut Names, type_names: &mut Names, expr: Expr<Rc<String>>) {
     write(
