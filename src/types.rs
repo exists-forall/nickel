@@ -257,18 +257,12 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
             }
         }
     }
-}
-
-impl<Name: Clone> Type<Name> {
-    pub fn from_content(content: TypeContent<(), Name>) -> Self {
-        AnnotType::from_content_annot((), content)
-    }
 
     fn increment_above(&self, index: usize, inc_by: usize) -> Self {
         debug_assert!(index <= self.free);
 
         if self.data.max_index <= index {
-            return Type {
+            return AnnotType {
                 free: self.free + inc_by,
                 data: self.data.clone(),
             };
@@ -324,7 +318,7 @@ impl<Name: Clone> Type<Name> {
             }
         };
 
-        Type::from_content(new_content)
+        AnnotType::from_content_annot(self.annot(), new_content)
     }
 
     fn increment_bound(&self, inc_by: usize) -> Self {
@@ -336,7 +330,7 @@ impl<Name: Clone> Type<Name> {
         self.increment_bound(new_free - self.free)
     }
 
-    pub fn subst(&self, replacements: &[Type<Name>]) -> Self {
+    pub fn subst(&self, replacements: &[Self]) -> Self {
         assert!(replacements.len() <= self.free);
         for replacement in replacements {
             // TODO: Assess whether or not this check is actually necessary or desireable
@@ -349,9 +343,9 @@ impl<Name: Clone> Type<Name> {
         self.subst_inner(self.free - replacements.len(), replacements)
     }
 
-    fn subst_inner(&self, start_index: usize, replacements: &[Type<Name>]) -> Self {
+    fn subst_inner(&self, start_index: usize, replacements: &[Self]) -> Self {
         if self.data.max_index <= start_index {
-            return Type {
+            return AnnotType {
                 free: self.free - replacements.len(),
                 data: self.data.clone(),
             };
@@ -359,21 +353,30 @@ impl<Name: Clone> Type<Name> {
 
         match self.to_content() {
             TypeContent::Unit { free } => {
-                Type::from_content(TypeContent::Unit { free: free - replacements.len() })
+                AnnotType::from_content_annot(
+                    self.annot(),
+                    TypeContent::Unit { free: free - replacements.len() },
+                )
             }
 
             TypeContent::Var { free, index } => {
                 let new_free = free - replacements.len();
                 if start_index + replacements.len() <= index {
-                    Type::from_content(TypeContent::Var {
-                        free: new_free,
-                        index: index - replacements.len(),
-                    })
+                    AnnotType::from_content_annot(
+                        self.annot(),
+                        TypeContent::Var {
+                            free: new_free,
+                            index: index - replacements.len(),
+                        },
+                    )
                 } else if index < start_index {
-                    Type::from_content(TypeContent::Var {
-                        free: new_free,
-                        index,
-                    })
+                    AnnotType::from_content_annot(
+                        self.annot(),
+                        TypeContent::Var {
+                            free: new_free,
+                            index,
+                        },
+                    )
                 } else {
                     // index lies inside substitution range
                     debug_assert!(start_index <= index && index < start_index + replacements.len());
@@ -383,34 +386,52 @@ impl<Name: Clone> Type<Name> {
             }
 
             TypeContent::Exists { param, body } => {
-                Type::from_content(TypeContent::Exists {
-                    param,
-                    body: body.subst_inner(start_index, replacements),
-                })
+                AnnotType::from_content_annot(
+                    self.annot(),
+                    TypeContent::Exists {
+                        param,
+                        body: body.subst_inner(start_index, replacements),
+                    },
+                )
             }
 
             TypeContent::Func { params, arg, ret } => {
-                Type::from_content(TypeContent::Func {
-                    params,
-                    arg: arg.subst_inner(start_index, replacements),
-                    ret: ret.subst_inner(start_index, replacements),
-                })
+                AnnotType::from_content_annot(
+                    self.annot(),
+                    TypeContent::Func {
+                        params,
+                        arg: arg.subst_inner(start_index, replacements),
+                        ret: ret.subst_inner(start_index, replacements),
+                    },
+                )
             }
 
             TypeContent::Pair { left, right } => {
-                Type::from_content(TypeContent::Pair {
-                    left: left.subst_inner(start_index, replacements),
-                    right: right.subst_inner(start_index, replacements),
-                })
+                AnnotType::from_content_annot(
+                    self.annot(),
+                    TypeContent::Pair {
+                        left: left.subst_inner(start_index, replacements),
+                        right: right.subst_inner(start_index, replacements),
+                    },
+                )
             }
 
             TypeContent::App { constructor, param } => {
-                Type::from_content(TypeContent::App {
-                    constructor: constructor.subst_inner(start_index, replacements),
-                    param: param.subst_inner(start_index, replacements),
-                })
+                AnnotType::from_content_annot(
+                    self.annot(),
+                    TypeContent::App {
+                        constructor: constructor.subst_inner(start_index, replacements),
+                        param: param.subst_inner(start_index, replacements),
+                    },
+                )
             }
         }
+    }
+}
+
+impl<Name: Clone> Type<Name> {
+    pub fn from_content(content: TypeContent<(), Name>) -> Self {
+        AnnotType::from_content_annot((), content)
     }
 }
 
