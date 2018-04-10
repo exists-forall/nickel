@@ -23,7 +23,7 @@ struct TypeBinding<Name> {
 #[derive(Clone, Debug)]
 struct Var<Name> {
     name: Name,
-    ty: Type<Name>,
+    ty: AnnotType<Kind, Name>,
     usage: Usage,
 }
 
@@ -84,7 +84,7 @@ impl<Name: Clone> Context<Name> {
         &self.types[index].kind
     }
 
-    pub fn var_type(&self, index: usize) -> &Type<Name> {
+    pub fn var_type(&self, index: usize) -> &AnnotType<Kind, Name> {
         &self.vars[index].ty
     }
 
@@ -106,7 +106,7 @@ impl<Name: Clone> Context<Name> {
         self.types.push(TypeBinding { name, kind });
     }
 
-    pub fn add_var_unmoved(&mut self, name: Name, ty: Type<Name>) {
+    pub fn add_var_unmoved(&mut self, name: Name, ty: AnnotType<Kind, Name>) {
         self.vars.push(Var {
             name,
             ty,
