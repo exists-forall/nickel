@@ -1,6 +1,7 @@
 use std::ops::Range;
 
 use types::*;
+use super::equiv::equiv_kind;
 
 #[derive(Clone, Debug)]
 struct Scope {
@@ -107,6 +108,7 @@ impl<Name: Clone> Context<Name> {
     }
 
     pub fn add_var_unmoved(&mut self, name: Name, ty: AnnotType<Kind, Name>) {
+        debug_assert!(equiv_kind(&ty.annot(), &Kind::Type));
         self.vars.push(Var {
             name,
             ty,
