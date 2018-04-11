@@ -38,6 +38,10 @@ pub enum Type {
 pub enum Expr {
     Unit,
     Var { usage: VarUsage, ident: Ident },
+    ForAll {
+        type_param: TypeParam,
+        body: Box<Expr>,
+    },
     Func {
         type_params: Vec<TypeParam>,
         arg_name: Ident,
