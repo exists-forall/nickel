@@ -2,7 +2,6 @@ use std::rc::Rc;
 use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, delimited, block, Indent};
 
 use super::super::expr::*;
-use super::super::types::*;
 use pretty_syntax::types;
 use pretty_syntax::names::Names;
 
