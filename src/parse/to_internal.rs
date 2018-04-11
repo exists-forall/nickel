@@ -50,13 +50,17 @@ pub fn convert_type(
             }))
         }
 
-        syntax::Type::Exists { param, body } => {
+        syntax::Type::Quantified {
+            quantifier,
+            param,
+            body,
+        } => {
             type_names.push_scope();
 
             type_names.add_name(param.ident.clone())?;
 
             let result = types::Type::from_content(types::TypeContent::Quantified {
-                quantifier: types::Quantifier::Exists,
+                quantifier,
                 param: types::TypeParam {
                     name: Rc::new(param.ident.name),
                     kind: param.kind,

@@ -1,4 +1,4 @@
-use types::Kind;
+use types::{Kind, Quantifier};
 use expr::VarUsage;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -17,7 +17,11 @@ pub struct TypeParam {
 pub enum Type {
     Unit,
     Var { ident: Ident },
-    Exists { param: TypeParam, body: Box<Type> },
+    Quantified {
+        quantifier: Quantifier,
+        param: TypeParam,
+        body: Box<Type>,
+    },
     Func {
         params: Vec<TypeParam>,
         arg: Box<Type>,

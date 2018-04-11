@@ -69,11 +69,17 @@ AtomicType: syntax::Type = {
     },
 };
 
+Quantifier: types::Quantifier = {
+    "exists" => types::Quantifier::Exists,
+    "forall" => types::Quantifier::ForAll,
+};
+
 QuantifiedType: syntax::Type = {
     <AtomicType>,
 
-    "exists" "{" <param: TypeParam> "}" <body: QuantifiedType> => {
-        syntax::Type::Exists {
+    <quantifier: Quantifier> "{" <param: TypeParam> "}" <body: QuantifiedType> => {
+        syntax::Type::Quantified {
+            quantifier,
             param,
             body: Box::new(body),
         }
@@ -82,20 +88,6 @@ QuantifiedType: syntax::Type = {
     <arg: AtomicType> "->" <ret: QuantifiedType> => {
         syntax::Type::Func {
             params: Vec::new(),
-            arg: Box::new(arg),
-            ret: Box::new(ret),
-        }
-    },
-
-    "forall"
-    "{" <params: (<TypeParam> ";")*> <last_param: TypeParam?> "}"
-    <arg: AtomicType> "->" <ret: QuantifiedType> => {
-        let mut all_params = params;
-        if let Some(last_param) = last_param {
-            all_params.push(last_param);
-        }
-        syntax::Type::Func {
-            params: all_params,
             arg: Box::new(arg),
             ret: Box::new(ret),
         }

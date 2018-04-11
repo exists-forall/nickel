@@ -218,7 +218,8 @@ mod test {
 
         assert_eq!(
             type_("exists {t : *} t"),
-            Ok(syntax::Type::Exists {
+            Ok(syntax::Type::Quantified {
+                quantifier: types::Quantifier::Exists,
                 param: syntax::TypeParam {
                     ident: mk_ident("t"),
                     kind: types::Kind::Type,
@@ -238,15 +239,17 @@ mod test {
 
         assert_eq!(
             type_("forall {t : *} t -> foo"),
-            Ok(syntax::Type::Func {
-                params: vec![
-                    syntax::TypeParam {
-                        ident: mk_ident("t"),
-                        kind: types::Kind::Type,
-                    },
-                ],
-                arg: Box::new(ty_var("t")),
-                ret: Box::new(ty_var("foo")),
+            Ok(syntax::Type::Quantified {
+                quantifier: types::Quantifier::ForAll,
+                param: syntax::TypeParam {
+                    ident: mk_ident("t"),
+                    kind: types::Kind::Type,
+                },
+                body: Box::new(syntax::Type::Func {
+                    params: vec![],
+                    arg: Box::new(ty_var("t")),
+                    ret: Box::new(ty_var("foo")),
+                }),
             })
         );
 
@@ -276,7 +279,8 @@ mod test {
 
         assert_eq!(
             type_("exists {f : (*) -> *} (Functor(f), f(T))"),
-            Ok(syntax::Type::Exists {
+            Ok(syntax::Type::Quantified {
+                quantifier: types::Quantifier::Exists,
                 param: syntax::TypeParam {
                     ident: mk_ident("f"),
                     kind: types::Kind::Constructor {
