@@ -65,7 +65,11 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
 
         TypeContent::Var { free: _, index } => Box::new(names.get_name(index)),
 
-        TypeContent::Exists { param, body } => {
+        TypeContent::Quantified {
+            quantifier,
+            param,
+            body,
+        } => {
             names.push_scope();
             let name = names.add_name(param.name.into());
             let body_pretty = to_pretty(names, Place::ExistsBody, body);
@@ -78,7 +82,16 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                     .join("}"),
             );
 
-            let content_pretty = "exists ".join(param_pretty).join(Sep(1)).join(body_pretty);
+            let quantifier_name = match quantifier {
+                Quantifier::Exists => "exists",
+                Quantifier::ForAll => "forall",
+            };
+
+            let content_pretty = quantifier_name
+                .join(" ")
+                .join(param_pretty)
+                .join(Sep(1))
+                .join(body_pretty);
 
             match place {
                 Place::ExistsBody => Box::new(content_pretty),

@@ -43,7 +43,11 @@ pub fn annot_kinds<Name: Clone>(
             ))
         }
 
-        TypeContent::Exists { param, body } => {
+        TypeContent::Quantified {
+            quantifier,
+            param,
+            body,
+        } => {
             ctx.push_scope();
             ctx.add_type_kind(param.name.clone(), param.kind.clone());
             let body_annot = annot_kinds(ctx, body)?;
@@ -52,7 +56,8 @@ pub fn annot_kinds<Name: Clone>(
             if equiv_kind(&body_annot.annot(), &Kind::Type) {
                 Ok(AnnotType::from_content_annot(
                     Kind::Type,
-                    TypeContent::Exists {
+                    TypeContent::Quantified {
+                        quantifier,
                         param,
                         body: body_annot,
                     },

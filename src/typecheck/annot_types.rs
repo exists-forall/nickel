@@ -58,7 +58,7 @@ fn is_copyable_primitive<TAnnot: Clone, Name: Clone>(ty: &AnnotType<TAnnot, Name
     match ty.to_content() {
         TypeContent::Unit { .. } => true,
 
-        TypeContent::Exists { body, .. } => is_copyable_primitive(&body),
+        TypeContent::Quantified { body, .. } => is_copyable_primitive(&body),
 
         TypeContent::Func { .. } => true,
 
@@ -334,7 +334,12 @@ pub fn annot_types<Name: Clone>(
 
             let mut nested = val_annot.annot();
             for type_name in type_names.iter() {
-                if let TypeContent::Exists { param, body } = nested.to_content() {
+                if let TypeContent::Quantified {
+                    quantifier: Quantifier::Exists,
+                    param,
+                    body,
+                } = nested.to_content()
+                {
                     ctx.add_type_kind(type_name.clone(), param.kind);
                     nested = body;
                 } else {
@@ -405,7 +410,8 @@ pub fn annot_types<Name: Clone>(
             for (name, ty_annot) in params_annot.iter().rev().cloned() {
                 result_type = AnnotType::from_content_annot(
                     Kind::Type,
-                    TypeContent::Exists {
+                    TypeContent::Quantified {
+                        quantifier: Quantifier::Exists,
                         param: TypeParam {
                             name,
                             kind: ty_annot.annot(),

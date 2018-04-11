@@ -55,7 +55,8 @@ pub fn convert_type(
 
             type_names.add_name(param.ident.clone())?;
 
-            let result = types::Type::from_content(types::TypeContent::Exists {
+            let result = types::Type::from_content(types::TypeContent::Quantified {
+                quantifier: types::Quantifier::Exists,
                 param: types::TypeParam {
                     name: Rc::new(param.ident.name),
                     kind: param.kind,

@@ -19,11 +19,18 @@ pub struct TypeParam<Name> {
     pub kind: Kind,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Quantifier {
+    Exists,
+    ForAll,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum TypeDataInner<TAnnot, Name> {
     Unit,
     Var { index: usize },
-    Exists {
+    Quantified {
+        quantifier: Quantifier,
         param: TypeParam<Name>,
         body: TypeData<TAnnot, Name>,
     },
@@ -54,7 +61,8 @@ struct TypeData<TAnnot, Name> {
 pub enum TypeContent<TAnnot, Name> {
     Unit { free: usize },
     Var { free: usize, index: usize },
-    Exists {
+    Quantified {
+        quantifier: Quantifier,
         param: TypeParam<Name>,
         body: AnnotType<TAnnot, Name>,
     },
@@ -115,14 +123,19 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 }
             }
 
-            TypeContent::Exists { param, body } => {
+            TypeContent::Quantified {
+                quantifier,
+                param,
+                body,
+            } => {
                 assert!(1 <= body.free, "Must have at least one free variable");
                 AnnotType {
                     free: body.free - 1,
                     data: TypeData {
                         annot,
                         max_index: body.data.max_index,
-                        inner: Rc::new(TypeDataInner::Exists {
+                        inner: Rc::new(TypeDataInner::Quantified {
+                            quantifier,
                             param: param.clone(),
                             body: body.data,
                         }),
@@ -193,11 +206,13 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 }
             }
 
-            &TypeDataInner::Exists {
+            &TypeDataInner::Quantified {
+                quantifier,
                 ref param,
                 ref body,
             } => {
-                TypeContent::Exists {
+                TypeContent::Quantified {
+                    quantifier,
                     param: param.clone(),
                     body: AnnotType {
                         free: self.free + 1,
@@ -288,8 +303,13 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 }
             }
 
-            TypeContent::Exists { param, body } => {
-                TypeContent::Exists {
+            TypeContent::Quantified {
+                quantifier,
+                param,
+                body,
+            } => {
+                TypeContent::Quantified {
+                    quantifier,
                     param,
                     body: body.increment_above(index, inc_by),
                 }
@@ -385,10 +405,15 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 }
             }
 
-            TypeContent::Exists { param, body } => {
+            TypeContent::Quantified {
+                quantifier,
+                param,
+                body,
+            } => {
                 AnnotType::from_content_annot(
                     self.annot(),
-                    TypeContent::Exists {
+                    TypeContent::Quantified {
+                        quantifier,
                         param,
                         body: body.subst_inner(start_index, replacements),
                     },

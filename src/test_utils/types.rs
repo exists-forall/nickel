@@ -11,7 +11,8 @@ pub fn var(free: usize, index: usize) -> Type<Rc<String>> {
 }
 
 pub fn exists(kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
-    Type::from_content(TypeContent::Exists {
+    Type::from_content(TypeContent::Quantified {
+        quantifier: Quantifier::Exists,
         param: TypeParam {
             name: Rc::new("".to_owned()),
             kind,
@@ -21,7 +22,8 @@ pub fn exists(kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
 }
 
 pub fn exists_named(name: &str, kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
-    Type::from_content(TypeContent::Exists {
+    Type::from_content(TypeContent::Quantified {
+        quantifier: Quantifier::Exists,
         param: TypeParam {
             name: Rc::new(name.to_owned()),
             kind,

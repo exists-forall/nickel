@@ -27,14 +27,19 @@ pub fn equiv<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
              free: _,
          }) => index1 == index2,
 
-        (TypeContent::Exists {
+        (TypeContent::Quantified {
+             quantifier: quantifier1,
              param: param1,
              body: body1,
          },
-         TypeContent::Exists {
+         TypeContent::Quantified {
+             quantifier: quantifier2,
              param: param2,
              body: body2,
-         }) => equiv_kind(&param1.kind, &param2.kind) && equiv(body1, body2),
+         }) => {
+            quantifier1 == quantifier2 && equiv_kind(&param1.kind, &param2.kind) &&
+                equiv(body1, body2)
+        }
 
         (TypeContent::Func {
              params: params1,
