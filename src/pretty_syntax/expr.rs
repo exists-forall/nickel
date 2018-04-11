@@ -2,6 +2,7 @@ use std::rc::Rc;
 use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, delimited, block, Indent};
 
 use super::super::expr::*;
+use super::super::types::*;
 use pretty_syntax::types;
 use pretty_syntax::names::Names;
 
@@ -14,6 +15,7 @@ pub enum Place {
     PairRight,
     LetBody,
     MakeExistsBody,
+    ForAllBody,
 }
 
 pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
@@ -44,6 +46,35 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                     ))
                 }
                 VarUsage::Copy => Box::new(var_names.get_name(index)),
+            }
+        }
+
+        ExprContent::ForAll { type_param, body } => {
+            type_names.push_scope();
+
+            let name = type_names.add_name(type_param.name.clone().into());
+            let kind_pretty = types::kind_to_pretty(types::KindPlace::Root, &type_param.kind);
+            let type_param_pretty = Group::new(
+                "{"
+                    .join(block(name.join(" :").join(Sep(1)).join(kind_pretty)))
+                    .join("}"),
+            );
+
+            let body_pretty = to_pretty(var_names, type_names, Place::ForAllBody, body);
+
+            type_names.pop_scope();
+
+            let content_pretty = Group::new("forall".join(Sep(1)).join(type_param_pretty))
+                .join(Sep(1))
+                .join(body_pretty);
+
+            match place {
+                Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
+                Place::LetBody | Place::MakeExistsBody => Box::new(Group::new(content_pretty)),
+
+                Place::ForAllBody => Box::new(content_pretty),
+
+                _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
             }
         }
 

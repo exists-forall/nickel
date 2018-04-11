@@ -14,6 +14,11 @@ enum ExprDataInner<TAnnot, EAnnot, Name> {
 
     Var { usage: VarUsage, index: usize },
 
+    ForAll {
+        type_param: TypeParam<Name>,
+        body: ExprData<TAnnot, EAnnot, Name>,
+    },
+
     Func {
         type_params: Rc<Vec<TypeParam<Name>>>,
         arg_name: Name,
@@ -67,6 +72,11 @@ pub enum ExprContent<TAnnot, EAnnot, Name> {
         free_vars: usize,
         free_types: usize,
         index: usize,
+    },
+
+    ForAll {
+        type_param: TypeParam<Name>,
+        body: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 
     Func {
@@ -158,6 +168,25 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                     data: ExprData {
                         annot,
                         inner: Rc::new(ExprDataInner::Var { usage, index }),
+                    },
+                }
+            }
+
+            ExprContent::ForAll { type_param, body } => {
+                assert!(
+                    1 <= body.free_types,
+                    "Must have at least one free type variable",
+                );
+
+                AnnotExpr {
+                    free_vars: body.free_vars,
+                    free_types: body.free_types - 1,
+                    data: ExprData {
+                        annot,
+                        inner: Rc::new(ExprDataInner::ForAll {
+                            type_param,
+                            body: body.data,
+                        }),
                     },
                 }
             }
@@ -360,6 +389,20 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                     free_types: self.free_types,
                     usage,
                     index,
+                }
+            }
+
+            &ExprDataInner::ForAll {
+                ref type_param,
+                ref body,
+            } => {
+                ExprContent::ForAll {
+                    type_param: type_param.clone(),
+                    body: AnnotExpr {
+                        free_types: self.free_types + 1,
+                        free_vars: self.free_vars,
+                        data: body.clone(),
+                    },
                 }
             }
 
