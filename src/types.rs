@@ -35,7 +35,6 @@ enum TypeDataInner<TAnnot, Name> {
         body: TypeData<TAnnot, Name>,
     },
     Func {
-        params: Rc<Vec<TypeParam<Name>>>,
         arg: TypeData<TAnnot, Name>,
         ret: TypeData<TAnnot, Name>,
     },
@@ -67,7 +66,6 @@ pub enum TypeContent<TAnnot, Name> {
         body: AnnotType<TAnnot, Name>,
     },
     Func {
-        params: Rc<Vec<TypeParam<Name>>>,
         arg: AnnotType<TAnnot, Name>,
         ret: AnnotType<TAnnot, Name>,
     },
@@ -143,19 +141,14 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 }
             }
 
-            TypeContent::Func { params, arg, ret } => {
+            TypeContent::Func { arg, ret } => {
                 assert_eq!(arg.free, ret.free, "Free variables do not match");
-                assert!(
-                    params.len() <= arg.free,
-                    "Must have at least {} free variables",
-                );
                 AnnotType {
-                    free: arg.free - params.len(),
+                    free: arg.free,
                     data: TypeData {
                         annot,
                         max_index: arg.data.max_index.max(ret.data.max_index),
                         inner: Rc::new(TypeDataInner::Func {
-                            params: params,
                             arg: arg.data,
                             ret: ret.data,
                         }),
@@ -221,19 +214,14 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 }
             }
 
-            &TypeDataInner::Func {
-                ref params,
-                ref arg,
-                ref ret,
-            } => {
+            &TypeDataInner::Func { ref arg, ref ret } => {
                 TypeContent::Func {
-                    params: params.clone(),
                     arg: AnnotType {
-                        free: self.free + params.len(),
+                        free: self.free,
                         data: arg.clone(),
                     },
                     ret: AnnotType {
-                        free: self.free + params.len(),
+                        free: self.free,
                         data: ret.clone(),
                     },
                 }
@@ -315,9 +303,8 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 }
             }
 
-            TypeContent::Func { params, arg, ret } => {
+            TypeContent::Func { arg, ret } => {
                 TypeContent::Func {
-                    params,
                     arg: arg.increment_above(index, inc_by),
                     ret: ret.increment_above(index, inc_by),
                 }
@@ -420,11 +407,10 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 )
             }
 
-            TypeContent::Func { params, arg, ret } => {
+            TypeContent::Func { arg, ret } => {
                 AnnotType::from_content_annot(
                     self.annot(),
                     TypeContent::Func {
-                        params,
                         arg: arg.subst_inner(start_index, replacements),
                         ret: ret.subst_inner(start_index, replacements),
                     },

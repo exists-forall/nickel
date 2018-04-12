@@ -106,39 +106,11 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             }
         }
 
-        TypeContent::Func { params, arg, ret } => {
-            names.push_scope();
-
-            let params_pretty = if params.len() > 0 {
-                // TODO: Render kinds
-                let names_pretty = delimited(
-                    &";".join(Sep(1)),
-                    params.iter().map(|param| {
-                        // This is a mutating operation.
-                        // Names are added here!
-                        let name = names.add_name(param.name.clone().into());
-                        let kind_pretty = kind_to_pretty(KindPlace::Root, &param.kind);
-                        Group::new(name.join(" :").join(Sep(1)).join(kind_pretty))
-                    }),
-                ).join(Conditional::OnlyBroken(";"));
-
-                Some(
-                    Group::new("forall {".join(block(names_pretty)).join("}")).join(Sep(1)),
-                )
-            } else {
-                None
-            };
-
+        TypeContent::Func { arg, ret } => {
             let arg_pretty = to_pretty(names, Place::FuncArg, arg);
             let ret_pretty = to_pretty(names, Place::FuncRet, ret);
 
-            names.pop_scope();
-
-            let content_pretty = params_pretty
-                .join(arg_pretty)
-                .join(" ->")
-                .join(Sep(1))
-                .join(ret_pretty);
+            let content_pretty = arg_pretty.join(" ->").join(Sep(1)).join(ret_pretty);
 
             match place {
                 Place::FuncRet => Box::new(content_pretty),

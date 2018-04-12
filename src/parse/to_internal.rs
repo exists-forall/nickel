@@ -73,18 +73,11 @@ pub fn convert_type(
             Ok(result)
         }
 
-        syntax::Type::Func { params, arg, ret } => {
-            type_names.push_scope();
-
-            add_type_params(type_names, &params)?;
-
+        syntax::Type::Func { arg, ret } => {
             let result = types::Type::from_content(types::TypeContent::Func {
-                params: convert_type_params(params),
                 arg: convert_type(type_names, *arg)?,
                 ret: convert_type(type_names, *ret)?,
             });
-
-            type_names.pop_scope();
 
             Ok(result)
         }

@@ -226,7 +226,6 @@ pub fn annot_types<Name: Clone>(
                 AnnotType::from_content_annot(
                     Kind::Type,
                     TypeContent::Func {
-                        params: Rc::new(Vec::new()),
                         arg: arg_type_annot.clone(),
                         ret: body_annot.annot(),
                     },
@@ -247,38 +246,30 @@ pub fn annot_types<Name: Clone>(
             let callee_annot = annot_types(ctx, callee)?;
             let arg_annot = annot_types(ctx, arg)?;
 
-            if let TypeContent::Func { params, arg, ret } = callee_annot.annot().to_content() {
-                if params.len() != type_params.len() {
+            if let TypeContent::Func { arg, ret } = callee_annot.annot().to_content() {
+                // This check which completely forbids type arguments in calls is a temporary
+                // placeholder prior to separating type instantiation from function application
+                if type_params.len() != 0 {
                     return Err(Error::ParameterCountMismatch {
                         context: ctx.clone(),
                         in_expr: ex,
-                        expected_parameters: params.len(),
+                        expected_parameters: 0,
                         actual_parameters: type_params.len(),
                     });
                 }
-                let mut type_params_annot = Vec::with_capacity(type_params.len());
-                for type_param in type_params.iter() {
-                    let type_param_annot = annot_kinds(ctx, type_param.clone())?;
-                    type_params_annot.push(type_param_annot);
-                }
-                for (expected, actual) in params.iter().zip(type_params_annot.iter()) {
-                    check_kind(ctx, actual, &expected.kind)?;
-                }
-                let arg_type_instantiated = arg.subst(&type_params_annot);
-                let ret_type_instantiated = ret.subst(&type_params_annot);
-                if !equiv(arg_type_instantiated.clone(), arg_annot.annot()) {
+                if !equiv(arg.clone(), arg_annot.annot()) {
                     return Err(Error::Mismatch {
                         context: ctx.clone(),
                         in_expr: ex,
-                        expected: arg_type_instantiated,
+                        expected: arg,
                         actual: arg_annot.annot(),
                     });
                 }
                 Ok(AnnotExpr::from_content_annot(
-                    ret_type_instantiated,
+                    ret,
                     ExprContent::App {
                         callee: callee_annot,
-                        type_params: Rc::new(type_params_annot),
+                        type_params: Rc::new(Vec::new()),
                         arg: arg_annot,
                     },
                 ))

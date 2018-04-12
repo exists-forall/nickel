@@ -87,7 +87,6 @@ QuantifiedType: syntax::Type = {
 
     <arg: AtomicType> "->" <ret: QuantifiedType> => {
         syntax::Type::Func {
-            params: Vec::new(),
             arg: Box::new(arg),
             ret: Box::new(ret),
         }

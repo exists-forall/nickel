@@ -10,9 +10,9 @@ pub fn var(free: usize, index: usize) -> Type<Rc<String>> {
     Type::from_content(TypeContent::Var { free, index })
 }
 
-pub fn exists(kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
+pub fn quantified(quantifier: Quantifier, kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
     Type::from_content(TypeContent::Quantified {
-        quantifier: Quantifier::Exists,
+        quantifier,
         param: TypeParam {
             name: Rc::new("".to_owned()),
             kind,
@@ -21,9 +21,14 @@ pub fn exists(kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
     })
 }
 
-pub fn exists_named(name: &str, kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
+pub fn quantified_named(
+    quantifier: Quantifier,
+    name: &str,
+    kind: Kind,
+    body: Type<Rc<String>>,
+) -> Type<Rc<String>> {
     Type::from_content(TypeContent::Quantified {
-        quantifier: Quantifier::Exists,
+        quantifier,
         param: TypeParam {
             name: Rc::new(name.to_owned()),
             kind,
@@ -32,12 +37,24 @@ pub fn exists_named(name: &str, kind: Kind, body: Type<Rc<String>>) -> Type<Rc<S
     })
 }
 
+pub fn exists(kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
+    quantified(Quantifier::Exists, kind, body)
+}
+
+pub fn exists_named(name: &str, kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
+    quantified_named(Quantifier::Exists, name, kind, body)
+}
+
+pub fn forall(kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
+    quantified(Quantifier::ForAll, kind, body)
+}
+
+pub fn forall_named(name: &str, kind: Kind, body: Type<Rc<String>>) -> Type<Rc<String>> {
+    quantified_named(Quantifier::ForAll, name, kind, body)
+}
+
 pub fn func(arg: Type<Rc<String>>, ret: Type<Rc<String>>) -> Type<Rc<String>> {
-    Type::from_content(TypeContent::Func {
-        params: Rc::new(Vec::new()),
-        arg,
-        ret,
-    })
+    Type::from_content(TypeContent::Func { arg, ret })
 }
 
 pub fn func_forall(
@@ -45,22 +62,11 @@ pub fn func_forall(
     arg: Type<Rc<String>>,
     ret: Type<Rc<String>>,
 ) -> Type<Rc<String>> {
-    Type::from_content(TypeContent::Func {
-        params: Rc::new(
-            param_kinds
-                .iter()
-                .cloned()
-                .map(|kind| {
-                    TypeParam {
-                        name: Rc::new("".to_owned()),
-                        kind,
-                    }
-                })
-                .collect(),
-        ),
-        arg,
-        ret,
-    })
+    let mut result = func(arg, ret);
+    for kind in param_kinds.iter().rev() {
+        result = forall(kind.clone(), result);
+    }
+    result
 }
 
 pub fn func_forall_named(
@@ -68,22 +74,11 @@ pub fn func_forall_named(
     arg: Type<Rc<String>>,
     ret: Type<Rc<String>>,
 ) -> Type<Rc<String>> {
-    Type::from_content(TypeContent::Func {
-        params: Rc::new(
-            params
-                .iter()
-                .cloned()
-                .map(|(name, kind)| {
-                    TypeParam {
-                        name: Rc::new(name.to_owned()),
-                        kind,
-                    }
-                })
-                .collect(),
-        ),
-        arg,
-        ret,
-    })
+    let mut result = func(arg, ret);
+    for (name, kind) in params.iter().rev().cloned() {
+        result = forall_named(name, kind, result);
+    }
+    result
 }
 
 pub fn pair(left: Type<Rc<String>>, right: Type<Rc<String>>) -> Type<Rc<String>> {

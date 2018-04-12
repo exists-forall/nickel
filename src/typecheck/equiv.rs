@@ -42,25 +42,13 @@ pub fn equiv<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
         }
 
         (TypeContent::Func {
-             params: params1,
              arg: arg1,
              ret: ret1,
          },
          TypeContent::Func {
-             params: params2,
              arg: arg2,
              ret: ret2,
-         }) => {
-            if params1.len() != params2.len() {
-                return false;
-            }
-            for (param1, param2) in params1.iter().zip(params2.iter()) {
-                if !equiv_kind(&param1.kind, &param2.kind) {
-                    return false;
-                }
-            }
-            equiv(arg1, arg2) && equiv(ret1, ret2)
-        }
+         }) => equiv(arg1, arg2) && equiv(ret1, ret2),
 
         (TypeContent::Pair {
              left: left1,

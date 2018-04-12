@@ -72,14 +72,9 @@ pub fn annot_kinds<Name: Clone>(
             }
         }
 
-        TypeContent::Func { params, arg, ret } => {
-            ctx.push_scope();
-            for param in params.iter().cloned() {
-                ctx.add_type_kind(param.name, param.kind);
-            }
+        TypeContent::Func { arg, ret } => {
             let arg_annot = annot_kinds(ctx, arg)?;
             let ret_annot = annot_kinds(ctx, ret)?;
-            ctx.pop_scope();
 
             if !equiv_kind(&arg_annot.annot(), &Kind::Type) {
                 return Err(Error::Mismatch {
@@ -102,7 +97,6 @@ pub fn annot_kinds<Name: Clone>(
             Ok(AnnotType::from_content_annot(
                 Kind::Type,
                 TypeContent::Func {
-                    params,
                     arg: arg_annot,
                     ret: ret_annot,
                 },

@@ -22,11 +22,7 @@ pub enum Type {
         param: TypeParam,
         body: Box<Type>,
     },
-    Func {
-        params: Vec<TypeParam>,
-        arg: Box<Type>,
-        ret: Box<Type>,
-    },
+    Func { arg: Box<Type>, ret: Box<Type> },
     Pair { left: Box<Type>, right: Box<Type> },
     App {
         constructor: Box<Type>,

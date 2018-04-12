@@ -231,7 +231,6 @@ mod test {
         assert_eq!(
             type_("foo -> bar"),
             Ok(syntax::Type::Func {
-                params: Vec::new(),
                 arg: Box::new(ty_var("foo")),
                 ret: Box::new(ty_var("bar")),
             })
@@ -246,7 +245,6 @@ mod test {
                     kind: types::Kind::Type,
                 },
                 body: Box::new(syntax::Type::Func {
-                    params: vec![],
                     arg: Box::new(ty_var("t")),
                     ret: Box::new(ty_var("foo")),
                 }),
@@ -486,7 +484,6 @@ mod test {
                     (mk_ident("U"), ty_var("Bar")),
                 ],
                 type_body: syntax::Type::Func {
-                    params: Vec::new(),
                     arg: Box::new(ty_var("T")),
                     ret: Box::new(ty_var("U")),
                 },
