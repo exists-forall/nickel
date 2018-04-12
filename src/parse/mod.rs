@@ -331,7 +331,6 @@ mod test {
             expr("hello(move world)"),
             Ok(syntax::Expr::App {
                 callee: Box::new(ex_var("hello")),
-                type_params: Vec::new(),
                 arg: Box::new(ex_move_var("world")),
             })
         );
@@ -343,7 +342,6 @@ mod test {
                     receiver: Box::new(ex_var("hello")),
                     type_params: vec![ty_var("T")],
                 }),
-                type_params: Vec::new(),
                 arg: Box::new(ex_move_var("world")),
             })
         );
@@ -355,7 +353,6 @@ mod test {
                     receiver: Box::new(ex_var("hello")),
                     type_params: vec![ty_var("T"), ty_var("U")],
                 }),
-                type_params: Vec::new(),
                 arg: Box::new(ex_move_var("world")),
             })
         );

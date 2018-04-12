@@ -153,36 +153,14 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             }
         }
 
-        ExprContent::App {
-            callee,
-            type_params,
-            arg,
-        } => {
+        ExprContent::App { callee, arg } => {
             let callee_pretty = to_pretty(var_names, type_names, Place::AppCallee, callee);
-
-            let type_params_pretty = delimited(
-                &";".join(Sep(1)),
-                type_params.iter().map(|param| {
-                    types::to_pretty(type_names, types::Place::Root, param.clone())
-                }),
-            ).join(Conditional::OnlyBroken(";"));
 
             let arg_pretty = to_pretty(var_names, type_names, Place::Root, arg);
 
-            if type_params.len() > 0 {
-                Box::new(Group::new(
-                    callee_pretty
-                        .join("{")
-                        .join(block(type_params_pretty).join("}"))
-                        .join("(")
-                        .join(block(arg_pretty))
-                        .join(")"),
-                ))
-            } else {
-                Box::new(Group::new(
-                    callee_pretty.join("(").join(block(arg_pretty)).join(")"),
-                ))
-            }
+            Box::new(Group::new(
+                callee_pretty.join("(").join(block(arg_pretty)).join(")"),
+            ))
         }
 
         ExprContent::Pair { left, right } => {

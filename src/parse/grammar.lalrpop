@@ -129,7 +129,6 @@ AtomicExpr: syntax::Expr = {
     <callee: CallableExpr> "(" <arg: Expr> ")" => {
         syntax::Expr::App {
             callee: Box::new(callee),
-            type_params: Vec::new(),
             arg: Box::new(arg),
         }
     }

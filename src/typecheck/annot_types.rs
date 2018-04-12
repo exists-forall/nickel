@@ -292,25 +292,11 @@ pub fn annot_types<Name: Clone>(
             ))
         }
 
-        ExprContent::App {
-            callee,
-            type_params,
-            arg,
-        } => {
+        ExprContent::App { callee, arg } => {
             let callee_annot = annot_types(ctx, callee)?;
             let arg_annot = annot_types(ctx, arg)?;
 
             if let TypeContent::Func { arg, ret } = callee_annot.annot().to_content() {
-                // This check which completely forbids type arguments in calls is a temporary
-                // placeholder prior to separating type instantiation from function application
-                if type_params.len() != 0 {
-                    return Err(Error::ParameterCountMismatch {
-                        context: ctx.clone(),
-                        in_expr: ex,
-                        expected_parameters: 0,
-                        actual_parameters: type_params.len(),
-                    });
-                }
                 if !equiv(arg.clone(), arg_annot.annot()) {
                     return Err(Error::Mismatch {
                         context: ctx.clone(),
@@ -323,7 +309,6 @@ pub fn annot_types<Name: Clone>(
                     ret,
                     ExprContent::App {
                         callee: callee_annot,
-                        type_params: Rc::new(Vec::new()),
                         arg: arg_annot,
                     },
                 ))

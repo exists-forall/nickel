@@ -101,11 +101,7 @@ pub fn inst(receiver: Expr<Rc<String>>, type_params: &[Type<Rc<String>>]) -> Exp
 }
 
 pub fn app(callee: Expr<Rc<String>>, arg: Expr<Rc<String>>) -> Expr<Rc<String>> {
-    Expr::from_content(ExprContent::App {
-        callee,
-        type_params: Rc::new(Vec::new()),
-        arg,
-    })
+    Expr::from_content(ExprContent::App { callee, arg })
 }
 
 pub fn app_forall(

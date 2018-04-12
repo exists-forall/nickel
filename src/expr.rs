@@ -32,7 +32,6 @@ enum ExprDataInner<TAnnot, EAnnot, Name> {
 
     App {
         callee: ExprData<TAnnot, EAnnot, Name>,
-        type_params: Rc<Vec<AnnotType<TAnnot, Name>>>,
         arg: ExprData<TAnnot, EAnnot, Name>,
     },
 
@@ -96,7 +95,6 @@ pub enum ExprContent<TAnnot, EAnnot, Name> {
 
     App {
         callee: AnnotExpr<TAnnot, EAnnot, Name>,
-        type_params: Rc<Vec<AnnotType<TAnnot, Name>>>,
         arg: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 
@@ -253,11 +251,7 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                 }
             }
 
-            ExprContent::App {
-                callee,
-                type_params,
-                arg,
-            } => {
+            ExprContent::App { callee, arg } => {
                 AnnotExpr {
                     free_vars: arg.free_vars,
                     free_types: arg.free_types,
@@ -265,7 +259,6 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                         annot,
                         inner: Rc::new(ExprDataInner::App {
                             callee: callee.data,
-                            type_params,
                             arg: arg.data,
                         }),
                     },
@@ -463,7 +456,6 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
 
             &ExprDataInner::App {
                 ref callee,
-                ref type_params,
                 ref arg,
             } => {
                 ExprContent::App {
@@ -472,7 +464,6 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                         free_vars: self.free_vars,
                         data: callee.clone(),
                     },
-                    type_params: type_params.clone(),
                     arg: AnnotExpr {
                         free_types: self.free_types,
                         free_vars: self.free_vars,

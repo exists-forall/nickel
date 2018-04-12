@@ -47,11 +47,7 @@ pub enum Expr {
         receiver: Box<Expr>,
         type_params: Vec<Type>,
     },
-    App {
-        callee: Box<Expr>,
-        type_params: Vec<Type>,
-        arg: Box<Expr>,
-    },
+    App { callee: Box<Expr>, arg: Box<Expr> },
     Pair { left: Box<Expr>, right: Box<Expr> },
     Let {
         names: Vec<Ident>,
