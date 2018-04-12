@@ -20,21 +20,8 @@ pub fn var(usage: VarUsage, free_vars: usize, free_types: usize, index: usize) -
     })
 }
 
-pub fn func(arg_type: Type<Rc<String>>, body: Expr<Rc<String>>) -> Expr<Rc<String>> {
-    Expr::from_content(ExprContent::Func {
-        type_params: Rc::new(Vec::new()),
-        arg_name: Rc::new("".to_owned()),
-        arg_type,
-        body,
-    })
-}
-
-pub fn func_forall(
-    param_kinds: &[Kind],
-    arg_type: Type<Rc<String>>,
-    body: Expr<Rc<String>>,
-) -> Expr<Rc<String>> {
-    Expr::from_content(ExprContent::Func {
+pub fn forall(param_kinds: &[Kind], body: Expr<Rc<String>>) -> Expr<Rc<String>> {
+    Expr::from_content(ExprContent::ForAll {
         type_params: Rc::new(
             param_kinds
                 .iter()
@@ -47,32 +34,12 @@ pub fn func_forall(
                 })
                 .collect(),
         ),
-        arg_name: Rc::new("".to_owned()),
-        arg_type,
         body,
     })
 }
 
-pub fn func_named(
-    arg_name: &str,
-    arg_type: Type<Rc<String>>,
-    body: Expr<Rc<String>>,
-) -> Expr<Rc<String>> {
-    Expr::from_content(ExprContent::Func {
-        type_params: Rc::new(Vec::new()),
-        arg_name: Rc::new(arg_name.to_owned()),
-        arg_type,
-        body,
-    })
-}
-
-pub fn func_forall_named(
-    params: &[(&str, Kind)],
-    arg_name: &str,
-    arg_type: Type<Rc<String>>,
-    body: Expr<Rc<String>>,
-) -> Expr<Rc<String>> {
-    Expr::from_content(ExprContent::Func {
+pub fn forall_named(params: &[(&str, Kind)], body: Expr<Rc<String>>) -> Expr<Rc<String>> {
+    Expr::from_content(ExprContent::ForAll {
         type_params: Rc::new(
             params
                 .iter()
@@ -85,10 +52,45 @@ pub fn func_forall_named(
                 })
                 .collect(),
         ),
+        body,
+    })
+}
+
+pub fn func(arg_type: Type<Rc<String>>, body: Expr<Rc<String>>) -> Expr<Rc<String>> {
+    Expr::from_content(ExprContent::Func {
+        arg_name: Rc::new("".to_owned()),
+        arg_type,
+        body,
+    })
+}
+
+pub fn func_forall(
+    param_kinds: &[Kind],
+    arg_type: Type<Rc<String>>,
+    body: Expr<Rc<String>>,
+) -> Expr<Rc<String>> {
+    forall(param_kinds, func(arg_type, body))
+}
+
+pub fn func_named(
+    arg_name: &str,
+    arg_type: Type<Rc<String>>,
+    body: Expr<Rc<String>>,
+) -> Expr<Rc<String>> {
+    Expr::from_content(ExprContent::Func {
         arg_name: Rc::new(arg_name.to_owned()),
         arg_type,
         body,
     })
+}
+
+pub fn func_forall_named(
+    params: &[(&str, Kind)],
+    arg_name: &str,
+    arg_type: Type<Rc<String>>,
+    body: Expr<Rc<String>>,
+) -> Expr<Rc<String>> {
+    forall_named(params, func_named(arg_name, arg_type, body))
 }
 
 pub fn app(callee: Expr<Rc<String>>, arg: Expr<Rc<String>>) -> Expr<Rc<String>> {

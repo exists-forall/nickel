@@ -139,27 +139,21 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
         }
 
         syntax::Expr::Func {
-            type_params,
             arg_name,
             arg_type,
             body,
         } => {
             ctx.var_names.push_scope();
-            ctx.type_names.push_scope();
-
-            add_type_params(&mut ctx.type_names, &type_params)?;
 
             ctx.var_names.add_name(arg_name.clone())?;
 
             let result = expr::Expr::from_content(expr::ExprContent::Func {
-                type_params: convert_type_params(type_params),
                 arg_name: Rc::new(arg_name.name),
                 arg_type: convert_type(&mut ctx.type_names, arg_type)?,
                 body: convert_expr(ctx, *body)?,
             });
 
             ctx.var_names.pop_scope();
-            ctx.type_names.pop_scope();
 
             Ok(result)
         }

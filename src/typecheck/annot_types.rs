@@ -207,16 +207,11 @@ pub fn annot_types<Name: Clone>(
         }
 
         ExprContent::Func {
-            type_params,
             arg_name,
             arg_type,
             body,
         } => {
             ctx.push_scope();
-
-            for param in type_params.iter() {
-                ctx.add_type_kind(param.name.clone(), param.kind.clone());
-            }
 
             let arg_type_annot = annot_kinds(ctx, arg_type)?;
             check_kind(ctx, &arg_type_annot, &Kind::Type)?;
@@ -231,13 +226,12 @@ pub fn annot_types<Name: Clone>(
                 AnnotType::from_content_annot(
                     Kind::Type,
                     TypeContent::Func {
-                        params: type_params.clone(),
+                        params: Rc::new(Vec::new()),
                         arg: arg_type_annot.clone(),
                         ret: body_annot.annot(),
                     },
                 ),
                 ExprContent::Func {
-                    type_params,
                     arg_name,
                     arg_type: arg_type_annot,
                     body: body_annot,

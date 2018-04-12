@@ -368,7 +368,6 @@ mod test {
         assert_eq!(
             expr("func (x : T) -> move x"),
             Ok(syntax::Expr::Func {
-                type_params: Vec::new(),
                 arg_name: mk_ident("x"),
                 arg_type: ty_var("T"),
                 body: Box::new(ex_move_var("x")),
@@ -376,42 +375,25 @@ mod test {
         );
 
         assert_eq!(
-            expr("func {T : *} (x : T) -> move x"),
-            Ok(syntax::Expr::Func {
+            expr("forall {T : *} func (x : T) -> move x"),
+            Ok(syntax::Expr::ForAll {
                 type_params: vec![
                     syntax::TypeParam {
                         ident: mk_ident("T"),
                         kind: types::Kind::Type,
                     },
                 ],
-                arg_name: mk_ident("x"),
-                arg_type: ty_var("T"),
-                body: Box::new(ex_move_var("x")),
+                body: Box::new(syntax::Expr::Func {
+                    arg_name: mk_ident("x"),
+                    arg_type: ty_var("T"),
+                    body: Box::new(ex_move_var("x")),
+                }),
             })
         );
 
         assert_eq!(
-            expr("func {T : *; U : *} (x : T) -> move x"),
-            Ok(syntax::Expr::Func {
-                type_params: vec![
-                    syntax::TypeParam {
-                        ident: mk_ident("T"),
-                        kind: types::Kind::Type,
-                    },
-                    syntax::TypeParam {
-                        ident: mk_ident("U"),
-                        kind: types::Kind::Type,
-                    },
-                ],
-                arg_name: mk_ident("x"),
-                arg_type: ty_var("T"),
-                body: Box::new(ex_move_var("x")),
-            })
-        );
-
-        assert_eq!(
-            expr("func {T : *; U : *;} (x : T) -> move x"),
-            Ok(syntax::Expr::Func {
+            expr("forall {T : *} {U : *} func (x : T) -> move x"),
+            Ok(syntax::Expr::ForAll {
                 type_params: vec![
                     syntax::TypeParam {
                         ident: mk_ident("T"),
@@ -422,9 +404,11 @@ mod test {
                         kind: types::Kind::Type,
                     },
                 ],
-                arg_name: mk_ident("x"),
-                arg_type: ty_var("T"),
-                body: Box::new(ex_move_var("x")),
+                body: Box::new(syntax::Expr::Func {
+                    arg_name: mk_ident("x"),
+                    arg_type: ty_var("T"),
+                    body: Box::new(ex_move_var("x")),
+                }),
             })
         );
 
@@ -591,7 +575,7 @@ mod test {
         );
 
         assert_eq!(
-            conv(&[], &[], "func {T : *} (x : T) -> move x"),
+            conv(&[], &[], "forall {T : *} func (x : T) -> move x"),
             Ok(ex::func_forall_named(
                 &[("T", types::Kind::Type)],
                 "x",

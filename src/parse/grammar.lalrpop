@@ -160,24 +160,8 @@ BlockExpr: syntax::Expr = {
         }
     },
 
-    "func"
-    "{" <type_params: (<TypeParam> ";")*> <last_param: TypeParam?> "}"
-    "(" <arg_name: Ident> ":" <arg_type: Type> ")" "->" <body: BlockExpr> => {
-        let mut all_params = type_params;
-        if let Some(last_param) = last_param {
-            all_params.push(last_param);
-        }
-        syntax::Expr::Func {
-            type_params: all_params,
-            arg_name,
-            arg_type,
-            body: Box::new(body),
-        }
-    },
-
     "func" "(" <arg_name: Ident> ":" <arg_type: Type> ")" "->" <body: BlockExpr> => {
         syntax::Expr::Func {
-            type_params: Vec::new(),
             arg_name,
             arg_type,
             body: Box::new(body),

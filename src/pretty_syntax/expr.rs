@@ -88,26 +88,11 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
         }
 
         ExprContent::Func {
-            type_params,
             arg_name,
             arg_type,
             body,
         } => {
             var_names.push_scope();
-            type_names.push_scope();
-
-            let type_param_names_pretty = delimited(
-                &";".join(Sep(1)),
-                type_params.iter().map(|param| {
-                    // This is a mutating operation.
-                    // Names are added here!
-                    let name = type_names.add_name(param.name.clone().into());
-                    let kind_pretty = types::kind_to_pretty(types::KindPlace::Root, &param.kind);
-                    Group::new(name.join(" :").join(Sep(1)).join(kind_pretty))
-                }),
-            ).join(Conditional::OnlyBroken(";"));
-
-            let type_params_pretty = Group::new("{".join(block(type_param_names_pretty)).join("}"));
 
             let arg_name_pretty = var_names.add_name(arg_name.clone().into());
             let arg_type_pretty = types::to_pretty(type_names, types::Place::Root, arg_type);
@@ -122,18 +107,12 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             let body_pretty = to_pretty(var_names, type_names, Place::AbsBody, body);
 
             var_names.pop_scope();
-            type_names.pop_scope();
 
-            let content_pretty = "func"
-                .join(if type_params.len() > 0 {
-                    Some(Sep(1).join(type_params_pretty))
-                } else {
-                    None
-                })
-                .join(Sep(1))
-                .join(arg_pretty)
-                .join(" ->")
-                .join(Indent(Sep(1).join(body_pretty)));
+            let content_pretty = "func".join(Sep(1)).join(arg_pretty).join(" ->").join(
+                Indent(
+                    Sep(1).join(body_pretty),
+                ),
+            );
 
             match place {
                 Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |

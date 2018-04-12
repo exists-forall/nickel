@@ -43,7 +43,6 @@ pub enum Expr {
         body: Box<Expr>,
     },
     Func {
-        type_params: Vec<TypeParam>,
         arg_name: Ident,
         arg_type: Type,
         body: Box<Expr>,

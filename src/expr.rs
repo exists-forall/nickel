@@ -20,7 +20,6 @@ enum ExprDataInner<TAnnot, EAnnot, Name> {
     },
 
     Func {
-        type_params: Rc<Vec<TypeParam<Name>>>,
         arg_name: Name,
         arg_type: AnnotType<TAnnot, Name>,
         body: ExprData<TAnnot, EAnnot, Name>,
@@ -80,7 +79,6 @@ pub enum ExprContent<TAnnot, EAnnot, Name> {
     },
 
     Func {
-        type_params: Rc<Vec<TypeParam<Name>>>,
         arg_name: Name,
         arg_type: AnnotType<TAnnot, Name>,
         body: AnnotExpr<TAnnot, EAnnot, Name>,
@@ -192,7 +190,6 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
             }
 
             ExprContent::Func {
-                type_params,
                 arg_name,
                 arg_type,
                 body,
@@ -204,22 +201,16 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                 );
 
                 assert!(
-                    type_params.len() <= body.free_types,
-                    "Must have at least {} free type variables",
-                );
-
-                assert!(
                     1 <= body.free_vars,
                     "Must have at least one free term variable",
                 );
 
                 AnnotExpr {
                     free_vars: body.free_vars - 1,
-                    free_types: body.free_types - type_params.len(),
+                    free_types: body.free_types,
                     data: ExprData {
                         annot,
                         inner: Rc::new(ExprDataInner::Func {
-                            type_params,
                             arg_name,
                             arg_type,
                             body: body.data,
@@ -407,17 +398,15 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
             }
 
             &ExprDataInner::Func {
-                ref type_params,
                 ref arg_name,
                 ref arg_type,
                 ref body,
             } => {
                 ExprContent::Func {
-                    type_params: type_params.clone(),
                     arg_name: arg_name.clone(),
                     arg_type: arg_type.clone(),
                     body: AnnotExpr {
-                        free_types: self.free_types + type_params.len(),
+                        free_types: self.free_types,
                         free_vars: self.free_vars + 1,
                         data: body.clone(),
                     },
