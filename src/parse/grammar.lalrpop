@@ -153,9 +153,9 @@ AtomicExpr: syntax::Expr = {
 BlockExpr: syntax::Expr = {
     <AtomicExpr>,
 
-    "forall" "{" <type_param: TypeParam> "}" <body: BlockExpr> => {
+    "forall" <type_params: ("{" <TypeParam> "}")+> <body: BlockExpr> => {
         syntax::Expr::ForAll {
-            type_param,
+            type_params,
             body: Box::new(body),
         }
     },

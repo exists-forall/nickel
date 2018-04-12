@@ -123,24 +123,19 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             }))
         }
 
-        syntax::Expr::ForAll { type_param, body } => {
+        syntax::Expr::ForAll { type_params, body } => {
             ctx.type_names.push_scope();
 
-            ctx.type_names.add_name(type_param.ident.clone())?;
+            add_type_params(&mut ctx.type_names, &type_params)?;
 
-            let param_converted = types::TypeParam {
-                name: Rc::new(type_param.ident.name),
-                kind: type_param.kind,
-            };
-
-            let body_converted = convert_expr(ctx, *body)?;
+            let result = expr::Expr::from_content(expr::ExprContent::ForAll {
+                type_params: convert_type_params(type_params),
+                body: convert_expr(ctx, *body)?,
+            });
 
             ctx.type_names.pop_scope();
 
-            Ok(expr::Expr::from_content(expr::ExprContent::ForAll {
-                type_params: Rc::new(vec![param_converted]),
-                body: body_converted,
-            }))
+            Ok(result)
         }
 
         syntax::Expr::Func {
