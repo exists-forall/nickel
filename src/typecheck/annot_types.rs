@@ -174,25 +174,33 @@ pub fn annot_types<Name: Clone>(
             ))
         }
 
-        ExprContent::ForAll { type_param, body } => {
+        ExprContent::ForAll { type_params, body } => {
             ctx.push_scope();
 
-            ctx.add_type_kind(type_param.name.clone(), type_param.kind.clone());
+            for param in type_params.iter() {
+                ctx.add_type_kind(param.name.clone(), param.kind.clone());
+            }
+
             let body_annot = annot_types(ctx, body)?;
 
             ctx.pop_scope();
 
-            Ok(AnnotExpr::from_content_annot(
-                AnnotType::from_content_annot(
+            let mut result_type = body_annot.annot();
+            for type_param in type_params.iter().rev() {
+                result_type = AnnotType::from_content_annot(
                     Kind::Type,
                     TypeContent::Quantified {
                         quantifier: Quantifier::ForAll,
                         param: type_param.clone(),
-                        body: body_annot.annot(),
+                        body: result_type,
                     },
-                ),
+                )
+            }
+
+            Ok(AnnotExpr::from_content_annot(
+                result_type,
                 ExprContent::ForAll {
-                    type_param,
+                    type_params,
                     body: body_annot,
                 },
             ))

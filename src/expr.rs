@@ -15,7 +15,7 @@ enum ExprDataInner<TAnnot, EAnnot, Name> {
     Var { usage: VarUsage, index: usize },
 
     ForAll {
-        type_param: TypeParam<Name>,
+        type_params: Rc<Vec<TypeParam<Name>>>,
         body: ExprData<TAnnot, EAnnot, Name>,
     },
 
@@ -75,7 +75,7 @@ pub enum ExprContent<TAnnot, EAnnot, Name> {
     },
 
     ForAll {
-        type_param: TypeParam<Name>,
+        type_params: Rc<Vec<TypeParam<Name>>>,
         body: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 
@@ -172,19 +172,19 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                 }
             }
 
-            ExprContent::ForAll { type_param, body } => {
+            ExprContent::ForAll { type_params, body } => {
                 assert!(
-                    1 <= body.free_types,
-                    "Must have at least one free type variable",
+                    type_params.len() <= body.free_types,
+                    "Must have at least {} free type variables",
                 );
 
                 AnnotExpr {
                     free_vars: body.free_vars,
-                    free_types: body.free_types - 1,
+                    free_types: body.free_types - type_params.len(),
                     data: ExprData {
                         annot,
                         inner: Rc::new(ExprDataInner::ForAll {
-                            type_param,
+                            type_params,
                             body: body.data,
                         }),
                     },
@@ -393,13 +393,13 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
             }
 
             &ExprDataInner::ForAll {
-                ref type_param,
+                ref type_params,
                 ref body,
             } => {
                 ExprContent::ForAll {
-                    type_param: type_param.clone(),
+                    type_params: type_params.clone(),
                     body: AnnotExpr {
-                        free_types: self.free_types + 1,
+                        free_types: self.free_types + type_params.len(),
                         free_vars: self.free_vars,
                         data: body.clone(),
                     },

@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, delimited, block, Indent};
+use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, delimited, block, Indent, Seq};
 
 use super::super::expr::*;
 use pretty_syntax::types;
@@ -48,22 +48,32 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             }
         }
 
-        ExprContent::ForAll { type_param, body } => {
+        ExprContent::ForAll { type_params, body } => {
             type_names.push_scope();
 
-            let name = type_names.add_name(type_param.name.clone().into());
-            let kind_pretty = types::kind_to_pretty(types::KindPlace::Root, &type_param.kind);
-            let type_param_pretty = Group::new(
-                "{"
-                    .join(block(name.join(" :").join(Sep(1)).join(kind_pretty)))
-                    .join("}"),
+            let type_params_pretty = Seq(
+                type_params
+                    .iter()
+                    .map(|param| {
+                        // This is a mutating operation.
+                        // Names are added here!
+                        let name = type_names.add_name(param.name.clone().into());
+                        let kind_pretty =
+                            types::kind_to_pretty(types::KindPlace::Root, &param.kind);
+                        Sep(1).join(Group::new(
+                            "{"
+                                .join(block(name.join(" :").join(Sep(1)).join(kind_pretty)))
+                                .join("}"),
+                        ))
+                    })
+                    .collect(),
             );
 
             let body_pretty = to_pretty(var_names, type_names, Place::ForAllBody, body);
 
             type_names.pop_scope();
 
-            let content_pretty = Group::new("forall".join(Sep(1)).join(type_param_pretty))
+            let content_pretty = Group::new("forall".join(type_params_pretty))
                 .join(Sep(1))
                 .join(body_pretty);
 

@@ -138,7 +138,7 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             ctx.type_names.pop_scope();
 
             Ok(expr::Expr::from_content(expr::ExprContent::ForAll {
-                type_param: param_converted,
+                type_params: Rc::new(vec![param_converted]),
                 body: body_converted,
             }))
         }
