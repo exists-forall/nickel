@@ -9,6 +9,7 @@ use pretty_syntax::names::Names;
 pub enum Place {
     Root,
     AbsBody,
+    InstReceiver,
     AppCallee,
     PairLeft,
     PairRight,
@@ -119,6 +120,36 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 Place::LetBody | Place::MakeExistsBody => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
+            }
+        }
+
+        ExprContent::Inst {
+            receiver,
+            type_params,
+        } => {
+            let receiver_pretty = to_pretty(var_names, type_names, Place::InstReceiver, receiver);
+
+            let params_pretty = Seq(
+                type_params
+                    .iter()
+                    .map(|param| {
+                        Sep(0).join(Group::new(
+                            "{"
+                                .join(block(types::to_pretty(
+                                    type_names,
+                                    types::Place::Root,
+                                    param.clone(),
+                                ))).join("}"),
+                        ))
+                    })
+                    .collect(),
+            );
+
+            let content_pretty = receiver_pretty.join(params_pretty);
+
+            match place {
+                Place::InstReceiver => Box::new(content_pretty),
+                _ => Box::new(Group::new(content_pretty)),
             }
         }
 

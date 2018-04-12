@@ -25,6 +25,11 @@ enum ExprDataInner<TAnnot, EAnnot, Name> {
         body: ExprData<TAnnot, EAnnot, Name>,
     },
 
+    Inst {
+        receiver: ExprData<TAnnot, EAnnot, Name>,
+        type_params: Rc<Vec<AnnotType<TAnnot, Name>>>,
+    },
+
     App {
         callee: ExprData<TAnnot, EAnnot, Name>,
         type_params: Rc<Vec<AnnotType<TAnnot, Name>>>,
@@ -82,6 +87,11 @@ pub enum ExprContent<TAnnot, EAnnot, Name> {
         arg_name: Name,
         arg_type: AnnotType<TAnnot, Name>,
         body: AnnotExpr<TAnnot, EAnnot, Name>,
+    },
+
+    Inst {
+        receiver: AnnotExpr<TAnnot, EAnnot, Name>,
+        type_params: Rc<Vec<AnnotType<TAnnot, Name>>>,
     },
 
     App {
@@ -214,6 +224,30 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                             arg_name,
                             arg_type,
                             body: body.data,
+                        }),
+                    },
+                }
+            }
+
+            ExprContent::Inst {
+                receiver,
+                type_params,
+            } => {
+                for param in type_params.iter() {
+                    assert_eq!(
+                        param.free(),
+                        receiver.free_types,
+                        "Free type variables do not match"
+                    );
+                }
+                AnnotExpr {
+                    free_vars: receiver.free_vars,
+                    free_types: receiver.free_types,
+                    data: ExprData {
+                        annot,
+                        inner: Rc::new(ExprDataInner::Inst {
+                            receiver: receiver.data,
+                            type_params,
                         }),
                     },
                 }
@@ -410,6 +444,20 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                         free_vars: self.free_vars + 1,
                         data: body.clone(),
                     },
+                }
+            }
+
+            &ExprDataInner::Inst {
+                ref receiver,
+                ref type_params,
+            } => {
+                ExprContent::Inst {
+                    receiver: AnnotExpr {
+                        free_types: self.free_types,
+                        free_vars: self.free_vars,
+                        data: receiver.clone(),
+                    },
+                    type_params: type_params.clone(),
                 }
             }
 

@@ -35,6 +35,11 @@ pub enum Error<Name> {
         in_expr: Expr<Name>,
         actual: AnnotType<Kind, Name>,
     },
+    ExpectedForAll {
+        context: Context<Name>,
+        in_expr: Expr<Name>,
+        actual: AnnotType<Kind, Name>,
+    },
     MovedTwice { context: Context<Name>, var: usize },
     NotMoved { context: Context<Name>, var: usize },
     IllegalCopy { context: Context<Name>, var: usize },
@@ -234,6 +239,55 @@ pub fn annot_types<Name: Clone>(
                     arg_name,
                     arg_type: arg_type_annot,
                     body: body_annot,
+                },
+            ))
+        }
+
+        ExprContent::Inst {
+            receiver,
+            type_params,
+        } => {
+            let receiver_annot = annot_types(ctx, receiver)?;
+
+            let mut type_params_annot = Vec::with_capacity(type_params.len());
+            for param in type_params.iter() {
+                let param_annot = annot_kinds(ctx, param.clone())?;
+                type_params_annot.push(param_annot);
+            }
+
+            let mut nested_receiver_ty = receiver_annot.annot();
+            for param_annot in type_params_annot.iter() {
+                if let TypeContent::Quantified {
+                    quantifier: Quantifier::ForAll,
+                    param: expected_param,
+                    body,
+                } = nested_receiver_ty.to_content()
+                {
+                    let expected = expected_param.kind;
+                    if !equiv_kind(&param_annot.annot(), &expected) {
+                        return Err(Error::KindMismatch {
+                            context: ctx.clone(),
+                            actual: param_annot.clone(),
+                            expected,
+                        });
+                    }
+                    nested_receiver_ty = body;
+                } else {
+                    return Err(Error::ExpectedForAll {
+                        context: ctx.clone(),
+                        in_expr: ex,
+                        actual: nested_receiver_ty,
+                    });
+                }
+            }
+
+            let receiver_ty_instantiated = nested_receiver_ty.subst(&type_params_annot);
+
+            Ok(AnnotExpr::from_content_annot(
+                receiver_ty_instantiated,
+                ExprContent::Inst {
+                    receiver: receiver_annot,
+                    type_params: Rc::new(type_params_annot),
                 },
             ))
         }
