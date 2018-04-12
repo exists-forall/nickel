@@ -339,26 +339,23 @@ mod test {
         assert_eq!(
             expr("hello{T}(move world)"),
             Ok(syntax::Expr::App {
-                callee: Box::new(ex_var("hello")),
-                type_params: vec![ty_var("T")],
+                callee: Box::new(syntax::Expr::Inst {
+                    receiver: Box::new(ex_var("hello")),
+                    type_params: vec![ty_var("T")],
+                }),
+                type_params: Vec::new(),
                 arg: Box::new(ex_move_var("world")),
             })
         );
 
         assert_eq!(
-            expr("hello{T; U}(move world)"),
+            expr("hello{T}{U}(move world)"),
             Ok(syntax::Expr::App {
-                callee: Box::new(ex_var("hello")),
-                type_params: vec![ty_var("T"), ty_var("U")],
-                arg: Box::new(ex_move_var("world")),
-            })
-        );
-
-        assert_eq!(
-            expr("hello{T; U;}(move world)"),
-            Ok(syntax::Expr::App {
-                callee: Box::new(ex_var("hello")),
-                type_params: vec![ty_var("T"), ty_var("U")],
+                callee: Box::new(syntax::Expr::Inst {
+                    receiver: Box::new(ex_var("hello")),
+                    type_params: vec![ty_var("T"), ty_var("U")],
+                }),
+                type_params: Vec::new(),
                 arg: Box::new(ex_move_var("world")),
             })
         );
@@ -590,7 +587,7 @@ mod test {
         );
 
         assert_eq!(
-            conv(&["foo", "bar"], &["T", "U"], "foo{T; U}(move bar)"),
+            conv(&["foo", "bar"], &["T", "U"], "foo{T}{U}(move bar)"),
             Ok(ex::app_forall(
                 ex::var(Usage::Copy, 2, 2, 0),
                 &[ty::var(2, 0), ty::var(2, 1)],
@@ -637,7 +634,7 @@ mod test {
             conv(
                 &["foo", "bar"],
                 &[],
-                "let_exists {T; U} x = move foo in bar{T; U}(move x)",
+                "let_exists {T; U} x = move foo in bar{T}{U}(move x)",
             ),
             Ok(ex::let_exists_named(
                 &["T", "U"],

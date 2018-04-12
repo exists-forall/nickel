@@ -151,6 +151,21 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             Ok(result)
         }
 
+        syntax::Expr::Inst {
+            receiver,
+            type_params,
+        } => {
+            let mut converted_params = Vec::with_capacity(type_params.len());
+            for ty in type_params {
+                converted_params.push(convert_type(&mut ctx.type_names, ty)?);
+            }
+
+            Ok(expr::Expr::from_content(expr::ExprContent::Inst {
+                receiver: convert_expr(ctx, *receiver)?,
+                type_params: Rc::new(converted_params),
+            }))
+        }
+
         syntax::Expr::App {
             callee,
             type_params,

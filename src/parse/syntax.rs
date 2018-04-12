@@ -43,6 +43,10 @@ pub enum Expr {
         arg_type: Type,
         body: Box<Expr>,
     },
+    Inst {
+        receiver: Box<Expr>,
+        type_params: Vec<Type>,
+    },
     App {
         callee: Box<Expr>,
         type_params: Vec<Type>,

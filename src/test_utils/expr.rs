@@ -93,6 +93,13 @@ pub fn func_forall_named(
     forall_named(params, func_named(arg_name, arg_type, body))
 }
 
+pub fn inst(receiver: Expr<Rc<String>>, type_params: &[Type<Rc<String>>]) -> Expr<Rc<String>> {
+    Expr::from_content(ExprContent::Inst {
+        receiver,
+        type_params: Rc::new(type_params.to_owned()),
+    })
+}
+
 pub fn app(callee: Expr<Rc<String>>, arg: Expr<Rc<String>>) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::App {
         callee,
@@ -106,11 +113,7 @@ pub fn app_forall(
     type_params: &[Type<Rc<String>>],
     arg: Expr<Rc<String>>,
 ) -> Expr<Rc<String>> {
-    Expr::from_content(ExprContent::App {
-        callee,
-        type_params: Rc::new(type_params.iter().cloned().collect()),
-        arg,
-    })
+    app(inst(callee, type_params), arg)
 }
 
 pub fn pair(left: Expr<Rc<String>>, right: Expr<Rc<String>>) -> Expr<Rc<String>> {

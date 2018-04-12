@@ -126,21 +126,7 @@ AtomicExpr: syntax::Expr = {
         }
     },
 
-    <callee: AtomicExpr>
-    "{" <type_params: (<Type> ";")*> <last_param: Type?> "}"
-    "(" <arg: Expr> ")" => {
-        let mut all_params = type_params;
-        if let Some(last_param) = last_param {
-            all_params.push(last_param);
-        }
-        syntax::Expr::App {
-            callee: Box::new(callee),
-            type_params: all_params,
-            arg: Box::new(arg),
-        }
-    },
-
-    <callee: AtomicExpr> "(" <arg: Expr> ")" => {
+    <callee: CallableExpr> "(" <arg: Expr> ")" => {
         syntax::Expr::App {
             callee: Box::new(callee),
             type_params: Vec::new(),
@@ -149,8 +135,22 @@ AtomicExpr: syntax::Expr = {
     }
 };
 
-BlockExpr: syntax::Expr = {
+InstExpr: syntax::Expr = {
+    <receiver: AtomicExpr> <type_params: ("{" <Type> "}")+> => {
+        syntax::Expr::Inst {
+            receiver: Box::new(receiver),
+            type_params,
+        }
+    }
+};
+
+CallableExpr: syntax::Expr = {
     <AtomicExpr>,
+    <InstExpr>,
+};
+
+BlockExpr: syntax::Expr = {
+    <CallableExpr>,
 
     "forall" <type_params: ("{" <TypeParam> "}")+> <body: BlockExpr> => {
         syntax::Expr::ForAll {
