@@ -187,7 +187,7 @@ fn main() {
             "x",
             foo_var.clone(),
             app_forall(
-                bar_var.clone(),
+                var(VarUsage::Copy, 3, 5, 1),
                 &[types::var(5, 2), types::var(5, 3), types::var(5, 4)],
                 var(VarUsage::Move, 3, 5, 2),
             ),
