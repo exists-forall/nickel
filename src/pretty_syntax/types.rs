@@ -8,7 +8,7 @@ use pretty_syntax::names::Names;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Place {
     Root,
-    ExistsBody,
+    QuantifierBody,
     FuncArg,
     FuncRet,
     PairLeft,
@@ -72,7 +72,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
         } => {
             names.push_scope();
             let name = names.add_name(param.name.into());
-            let body_pretty = to_pretty(names, Place::ExistsBody, body);
+            let body_pretty = to_pretty(names, Place::QuantifierBody, body);
             names.pop_scope();
 
             let kind_pretty = kind_to_pretty(KindPlace::Root, &param.kind);
@@ -94,7 +94,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 .join(body_pretty);
 
             match place {
-                Place::ExistsBody => Box::new(content_pretty),
+                Place::QuantifierBody => Box::new(content_pretty),
 
                 Place::Root | Place::FuncRet | Place::PairLeft | Place::PairRight => Box::new(
                     Group::new(
@@ -115,7 +115,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::FuncRet => Box::new(content_pretty),
 
-                Place::Root | Place::PairLeft | Place::PairRight => {
+                Place::Root | Place::PairLeft | Place::PairRight | Place::QuantifierBody => {
                     Box::new(Group::new(content_pretty))
                 }
 
@@ -159,7 +159,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::AppLeft => Box::new(content_pretty),
 
-                Place::Root | Place::ExistsBody | Place::FuncArg | Place::FuncRet |
+                Place::Root | Place::QuantifierBody | Place::FuncArg | Place::FuncRet |
                 Place::PairLeft | Place::PairRight => Box::new(Group::new(content_pretty)),
             }
         }
