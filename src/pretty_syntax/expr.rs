@@ -117,7 +117,9 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
 
             match place {
                 Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::LetBody | Place::MakeExistsBody => Box::new(Group::new(content_pretty)),
+                Place::LetBody | Place::MakeExistsBody | Place::ForAllBody => Box::new(Group::new(
+                    content_pretty,
+                )),
 
                 _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
             }
@@ -223,7 +225,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 Place::LetBody => Box::new(content_pretty),
 
                 Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::MakeExistsBody => Box::new(Group::new(content_pretty)),
+                Place::MakeExistsBody | Place::ForAllBody => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new("(".join(block(content_pretty)).join(")")),
             }
@@ -277,7 +279,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 Place::LetBody => Box::new(content_pretty),
 
                 Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::MakeExistsBody => Box::new(Group::new(content_pretty)),
+                Place::MakeExistsBody | Place::ForAllBody => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new("(".join(block(content_pretty)).join(")")),
             }
@@ -335,7 +337,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 Place::MakeExistsBody => Box::new(content_pretty),
 
                 Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::LetBody => Box::new(Group::new(content_pretty)),
+                Place::LetBody | Place::ForAllBody => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
             }
