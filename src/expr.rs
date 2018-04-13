@@ -252,6 +252,18 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
             }
 
             ExprContent::App { callee, arg } => {
+                assert_eq!(
+                    callee.free_vars,
+                    arg.free_vars,
+                    "Free term variables do not match"
+                );
+
+                assert_eq!(
+                    callee.free_types,
+                    arg.free_types,
+                    "Free type variables do not match",
+                );
+
                 AnnotExpr {
                     free_vars: arg.free_vars,
                     free_types: arg.free_types,

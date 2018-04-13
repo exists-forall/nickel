@@ -112,7 +112,7 @@ fn main() {
         func_named(
             "baz",
             foo_type.clone(),
-            app(foo_var.clone(), var(VarUsage::Move, 3, 2, 2)),
+            app(var(VarUsage::Copy, 3, 2, 0), var(VarUsage::Move, 3, 2, 2)),
         ),
     );
     print_expr(
@@ -167,10 +167,10 @@ fn main() {
             app(foo_var.clone(), bar_var.clone()),
             let_vars_named(
                 &["b"],
-                app(foo_var.clone(), var(VarUsage::Move, 3, 2, 2)),
+                app(var(VarUsage::Copy, 3, 2, 0), var(VarUsage::Move, 3, 2, 2)),
                 let_vars_named(
                     &["c"],
-                    app(foo_var.clone(), var(VarUsage::Move, 4, 2, 3)),
+                    app(var(VarUsage::Copy, 4, 2, 0), var(VarUsage::Move, 4, 2, 3)),
                     var(VarUsage::Move, 5, 2, 4),
                 ),
             ),
