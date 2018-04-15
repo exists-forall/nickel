@@ -155,22 +155,14 @@ BlockExpr: syntax::Expr = {
     },
 
     "let_exists"
-    "{" <type_names: (<Ident> ";")*> <last_name: Ident?> "}"
+    <type_names: ("{" <Ident> "}")+>
     <val_name: Ident> "=" <val: Expr>
-    "in" <body: BlockExpr> =>? {
-        let mut all_names = type_names;
-        if let Some(last_name) = last_name {
-            all_names.push(last_name);
-        }
-        if all_names.len() > 0 {
-            Ok(syntax::Expr::LetExists {
-                type_names: all_names,
-                val_name,
-                val: Box::new(val),
-                body: Box::new(body),
-            })
-        } else {
-            Err(ParseError::User { error: lex::Error::Empty })
+    "in" <body: BlockExpr> => {
+        syntax::Expr::LetExists {
+            type_names: type_names,
+            val_name,
+            val: Box::new(val),
+            body: Box::new(body),
         }
     },
 

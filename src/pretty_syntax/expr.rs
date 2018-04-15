@@ -236,14 +236,15 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             var_names.push_scope();
             type_names.push_scope();
 
-            let type_names_pretty = delimited(
-                &";".join(Sep(1)),
+            let type_names_pretty = Group::new(delimited(
+                &Sep(1),
                 exists_type_names.iter().map(|name| {
                     // This is a mutating operation.
                     // Names are added here!
-                    type_names.add_name(name.clone().into())
+                    let name = type_names.add_name(name.clone().into());
+                    "{".join(name).join("}")
                 }),
-            ).join(Conditional::OnlyBroken(";"));
+            ));
 
             let val_name_pretty = var_names.add_name(val_name.clone().into());
 
@@ -253,7 +254,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             type_names.pop_scope();
 
             let binding_pretty = Group::new(
-                Group::new("{".join(block(type_names_pretty)).join("}"))
+                type_names_pretty
                     .join(Sep(1))
                     .join(Group::new(val_name_pretty.join(Sep(1)).join("=")))
                     .join(Sep(1))
