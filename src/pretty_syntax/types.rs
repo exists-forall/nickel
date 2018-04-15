@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, block};
+use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, block, Indent};
 
 use super::super::types::*;
 use pretty_syntax::names::Names;
@@ -13,7 +13,8 @@ pub enum Place {
     FuncRet,
     PairLeft,
     PairRight,
-    AppLeft,
+    AppConstructor,
+    AppParam,
 }
 
 pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
@@ -105,20 +106,18 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
         }
 
         TypeContent::App { constructor, param } => {
-            let constructor_pretty = to_pretty(names, Place::AppLeft, constructor);
-            let param_pretty = to_pretty(names, Place::Root, param);
+            let constructor_pretty = to_pretty(names, Place::AppConstructor, constructor);
+            let param_pretty = to_pretty(names, Place::AppParam, param);
 
-            let content_pretty = constructor_pretty
-                .join(Sep(0))
-                .join("(")
-                .join(block(param_pretty))
-                .join(")");
+            let content_pretty = constructor_pretty.join(Indent(Sep(1).join(param_pretty)));
 
             match place {
-                Place::AppLeft => Box::new(content_pretty),
+                Place::AppConstructor => Box::new(content_pretty),
 
                 Place::Root | Place::QuantifierBody | Place::FuncArg | Place::FuncRet |
                 Place::PairLeft | Place::PairRight => Box::new(Group::new(content_pretty)),
+
+                _ => Box::new("(".join(block(content_pretty)).join(")")),
             }
         }
     }

@@ -136,7 +136,7 @@ mod test {
         assert_eq!(type_("(((((hello)))))"), Ok(ty_var("hello")));
 
         assert_eq!(
-            type_("foo(bar)"),
+            type_("foo bar"),
             Ok(syntax::Type::App {
                 constructor: Box::new(ty_var("foo")),
                 param: Box::new(ty_var("bar")),
@@ -144,7 +144,7 @@ mod test {
         );
 
         assert_eq!(
-            type_("foo(bar; baz)"),
+            type_("foo bar baz"),
             Ok(syntax::Type::App {
                 constructor: Box::new(syntax::Type::App {
                     constructor: Box::new(ty_var("foo")),
@@ -155,7 +155,7 @@ mod test {
         );
 
         assert_eq!(
-            type_("foo(bar; baz;)"),
+            type_("foo bar baz"),
             Ok(syntax::Type::App {
                 constructor: Box::new(syntax::Type::App {
                     constructor: Box::new(ty_var("foo")),
@@ -219,7 +219,7 @@ mod test {
         // Full example:
 
         assert_eq!(
-            type_("exists {f} (Functor(f), f(T))"),
+            type_("exists {f} (Functor f, f T)"),
             Ok(syntax::Type::Quantified {
                 quantifier: types::Quantifier::Exists,
                 param: syntax::TypeParam { ident: mk_ident("f") },

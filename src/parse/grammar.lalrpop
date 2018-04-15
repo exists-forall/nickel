@@ -28,23 +28,15 @@ AtomicType: syntax::Type = {
     "(" <Type> ")",
     "(" ")" => syntax::Type::Unit,
     <ident: Ident> => syntax::Type::Var { ident },
-    <constructor: AtomicType> "(" <params: (<Type> ";")*> <last_param: Type?> ")" => {
-        // TODO: This currently allows `F()` to be parsed as `F`.
-        // Is this really the behavior we want?
-        let mut app = constructor;
-        for param in params {
-            app = syntax::Type::App {
-                constructor: Box::new(app),
-                param: Box::new(param),
-            };
+};
+
+AppType: syntax::Type = {
+    <AtomicType>,
+    <constructor: AppType> <param: AtomicType> => {
+        syntax::Type::App {
+            constructor: Box::new(constructor),
+            param: Box::new(param),
         }
-        if let Some(last_param) = last_param {
-            app = syntax::Type::App {
-                constructor: Box::new(app),
-                param: Box::new(last_param),
-            }
-        }
-        app
     },
 };
 
@@ -54,7 +46,7 @@ Quantifier: types::Quantifier = {
 };
 
 QuantifiedType: syntax::Type = {
-    <AtomicType>,
+    <AppType>,
 
     <quantifier: Quantifier> "{" <param: TypeParam> "}" <body: QuantifiedType> => {
         syntax::Type::Quantified {
