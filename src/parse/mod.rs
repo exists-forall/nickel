@@ -6,16 +6,10 @@ pub mod to_internal;
 
 use lalrpop_util::ParseError;
 
-use types;
-
 type ParseResult<T> = Result<T, ParseError<usize, lex::Token, lex::Error>>;
 
 pub fn ident(s: &str) -> ParseResult<syntax::Ident> {
     grammar::IdentParser::new().parse(lex::Lexer::from_str(s))
-}
-
-pub fn kind(s: &str) -> ParseResult<types::Kind> {
-    grammar::KindParser::new().parse(lex::Lexer::from_str(s))
 }
 
 pub fn type_(s: &str) -> ParseResult<syntax::Type> {
@@ -33,8 +27,8 @@ mod test {
     use super::*;
     use super::syntax::Ident;
     use expr;
+    use types;
     use test_utils::parse_syntax::*;
-    use utils::rc_vec_view::RcVecView;
 
     fn name(s: &str) -> Result<String, ParseError<usize, lex::Token, lex::Error>> {
         grammar::RawNameParser::new().parse(lex::Lexer::from_str(s))
@@ -126,51 +120,6 @@ mod test {
         assert!(ident("foo#bar").is_err());
     }
 
-    #[test]
-    fn test_kind() {
-        assert_eq!(kind("*"), Ok(types::Kind::Type));
-        assert_eq!(kind("Place"), Ok(types::Kind::Place));
-        assert_eq!(kind("Version"), Ok(types::Kind::Version));
-        assert_eq!(
-            kind(
-                "(((( // an embedded comment \n * // another embedded comment \n ))))",
-            ),
-            Ok(types::Kind::Type)
-        );
-        assert_eq!(
-            kind("(*) -> *"),
-            Ok(types::Kind::Constructor {
-                params: RcVecView::new(Rc::new(vec![types::Kind::Type])),
-                result: Rc::new(types::Kind::Type),
-            })
-        );
-        assert_eq!(
-            kind("(*; Place; Version) -> *"),
-            Ok(types::Kind::Constructor {
-                params: RcVecView::new(Rc::new(vec![
-                    types::Kind::Type,
-                    types::Kind::Place,
-                    types::Kind::Version,
-                ])),
-                result: Rc::new(types::Kind::Type),
-            })
-        );
-        assert_eq!(
-            kind("(*; (*) -> *; *;) -> Place"),
-            Ok(types::Kind::Constructor {
-                params: RcVecView::new(Rc::new(vec![
-                    types::Kind::Type,
-                    types::Kind::Constructor {
-                        params: RcVecView::new(Rc::new(vec![types::Kind::Type])),
-                        result: Rc::new(types::Kind::Type),
-                    },
-                    types::Kind::Type,
-                ])),
-                result: Rc::new(types::Kind::Place),
-            })
-        );
-    }
-
     fn ty_var(s: &str) -> syntax::Type {
         syntax::Type::Var { ident: mk_ident(s) }
     }
@@ -217,13 +166,10 @@ mod test {
         );
 
         assert_eq!(
-            type_("exists {t : *} t"),
+            type_("exists {t} t"),
             Ok(syntax::Type::Quantified {
                 quantifier: types::Quantifier::Exists,
-                param: syntax::TypeParam {
-                    ident: mk_ident("t"),
-                    kind: types::Kind::Type,
-                },
+                param: syntax::TypeParam { ident: mk_ident("t") },
                 body: Box::new(ty_var("t")),
             })
         );
@@ -237,13 +183,10 @@ mod test {
         );
 
         assert_eq!(
-            type_("forall {t : *} t -> foo"),
+            type_("forall {t} t -> foo"),
             Ok(syntax::Type::Quantified {
                 quantifier: types::Quantifier::ForAll,
-                param: syntax::TypeParam {
-                    ident: mk_ident("t"),
-                    kind: types::Kind::Type,
-                },
+                param: syntax::TypeParam { ident: mk_ident("t") },
                 body: Box::new(syntax::Type::Func {
                     arg: Box::new(ty_var("t")),
                     ret: Box::new(ty_var("foo")),
@@ -276,16 +219,10 @@ mod test {
         // Full example:
 
         assert_eq!(
-            type_("exists {f : (*) -> *} (Functor(f), f(T))"),
+            type_("exists {f} (Functor(f), f(T))"),
             Ok(syntax::Type::Quantified {
                 quantifier: types::Quantifier::Exists,
-                param: syntax::TypeParam {
-                    ident: mk_ident("f"),
-                    kind: types::Kind::Constructor {
-                        params: RcVecView::new(Rc::new(vec![types::Kind::Type])),
-                        result: Rc::new(types::Kind::Type),
-                    },
-                },
+                param: syntax::TypeParam { ident: mk_ident("f") },
                 body: Box::new(syntax::Type::Pair {
                     left: Box::new(syntax::Type::App {
                         constructor: Box::new(ty_var("Functor")),
@@ -367,14 +304,9 @@ mod test {
         );
 
         assert_eq!(
-            expr("forall {T : *} func (x : T) -> move x"),
+            expr("forall {T} func (x : T) -> move x"),
             Ok(syntax::Expr::ForAll {
-                type_params: vec![
-                    syntax::TypeParam {
-                        ident: mk_ident("T"),
-                        kind: types::Kind::Type,
-                    },
-                ],
+                type_params: vec![syntax::TypeParam { ident: mk_ident("T") }],
                 body: Box::new(syntax::Expr::Func {
                     arg_name: mk_ident("x"),
                     arg_type: ty_var("T"),
@@ -384,17 +316,11 @@ mod test {
         );
 
         assert_eq!(
-            expr("forall {T : *} {U : *} func (x : T) -> move x"),
+            expr("forall {T} {U} func (x : T) -> move x"),
             Ok(syntax::Expr::ForAll {
                 type_params: vec![
-                    syntax::TypeParam {
-                        ident: mk_ident("T"),
-                        kind: types::Kind::Type,
-                    },
-                    syntax::TypeParam {
-                        ident: mk_ident("U"),
-                        kind: types::Kind::Type,
-                    },
+                    syntax::TypeParam { ident: mk_ident("T") },
+                    syntax::TypeParam { ident: mk_ident("U") },
                 ],
                 body: Box::new(syntax::Expr::Func {
                     arg_name: mk_ident("x"),
@@ -566,9 +492,9 @@ mod test {
         );
 
         assert_eq!(
-            conv(&[], &[], "forall {T : *} func (x : T) -> move x"),
+            conv(&[], &[], "forall {T} func (x : T) -> move x"),
             Ok(ex::func_forall_named(
-                &[("T", types::Kind::Type)],
+                &["T"],
                 "x",
                 ty::var(1, 0),
                 ex::var(Usage::Move, 1, 1, 0),

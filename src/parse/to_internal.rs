@@ -12,7 +12,7 @@ pub struct Context {
 }
 
 fn add_type_params(type_names: &mut Names, params: &[syntax::TypeParam]) -> Result<(), Error> {
-    for &syntax::TypeParam { ref ident, kind: _ } in params {
+    for &syntax::TypeParam { ref ident } in params {
         type_names.add_name(ident.clone())?;
     }
     Ok(())
@@ -22,12 +22,7 @@ fn convert_type_params(params: Vec<syntax::TypeParam>) -> Rc<Vec<types::TypePara
     Rc::new(
         params
             .into_iter()
-            .map(|param| {
-                types::TypeParam {
-                    name: Rc::new(param.ident.name),
-                    kind: param.kind,
-                }
-            })
+            .map(|param| types::TypeParam { name: Rc::new(param.ident.name) })
             .collect(),
     )
 }
@@ -61,10 +56,7 @@ pub fn convert_type(
 
             let result = types::Type::from_content(types::TypeContent::Quantified {
                 quantifier,
-                param: types::TypeParam {
-                    name: Rc::new(param.ident.name),
-                    kind: param.kind,
-                },
+                param: types::TypeParam { name: Rc::new(param.ident.name) },
                 body: convert_type(type_names, *body)?,
             });
 

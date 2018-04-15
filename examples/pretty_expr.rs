@@ -6,13 +6,11 @@ use std::io::stdout;
 
 use pretty_trait::write;
 
-use nickel_lang::types::*;
 use nickel_lang::expr::*;
 use nickel_lang::test_utils::types;
 use nickel_lang::test_utils::expr::*;
 use nickel_lang::pretty_syntax::names::Names;
 use nickel_lang::pretty_syntax::expr::{Place, to_pretty};
-use nickel_lang::utils::rc_vec_view::RcVecView;
 
 fn print_expr(var_names: &mut Names, type_names: &mut Names, expr: Expr<Rc<String>>) {
     write(
@@ -130,12 +128,7 @@ fn main() {
     print_expr(
         &mut var_names,
         &mut type_names,
-        func_forall_named(
-            &[("a", Kind::Type)],
-            "x",
-            types::var(3, 2),
-            var(VarUsage::Move, 3, 3, 2),
-        ),
+        func_forall_named(&["a"], "x", types::var(3, 2), var(VarUsage::Move, 3, 3, 2)),
     );
 
     println!();
@@ -212,23 +205,13 @@ fn main() {
         &mut var_names,
         &mut type_names,
         func_forall_named(
-            &[
-                (
-                    "f",
-                    Kind::Constructor {
-                        params: RcVecView::new(Rc::new(vec![Kind::Type])),
-                        result: Rc::new(Kind::Type),
-                    },
-                ),
-                ("a", Kind::Type),
-                ("b", Kind::Type),
-            ],
+            &["f", "a", "b"],
             "args",
             types::pair(
                 types::app(types::var(5, 2), types::var(5, 3)),
                 types::pair(
                     types::func_forall_named(
-                        &[("a", Kind::Type), ("b", Kind::Type)],
+                        &["a", "b"],
                         types::pair(
                             types::func(types::var(7, 5), types::var(7, 6)),
                             types::app(types::var(7, 2), types::var(7, 5)),

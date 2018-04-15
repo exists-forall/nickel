@@ -59,13 +59,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                         // This is a mutating operation.
                         // Names are added here!
                         let name = type_names.add_name(param.name.clone().into());
-                        let kind_pretty =
-                            types::kind_to_pretty(types::KindPlace::Root, &param.kind);
-                        Sep(1).join(Group::new(
-                            "{"
-                                .join(block(name.join(" :").join(Sep(1)).join(kind_pretty)))
-                                .join("}"),
-                        ))
+                        Sep(1).join(Group::new("{".join(block(name)).join("}")))
                     })
                     .collect(),
             );

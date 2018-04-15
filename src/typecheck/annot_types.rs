@@ -1,44 +1,35 @@
-use std::rc::Rc;
-
 use types::*;
 use expr::*;
 use super::context::{Context, Usage};
-use super::annot_kinds;
-use super::equiv::{equiv_kind, equiv};
+use super::equiv::equiv;
 
 #[derive(Clone, Debug)]
 pub enum Error<Name> {
-    Kind(annot_kinds::Error<Name>),
-    KindMismatch {
-        context: Context<Name>,
-        actual: AnnotType<Kind, Name>,
-        expected: Kind,
-    },
     Mismatch {
         context: Context<Name>,
         in_expr: Expr<Name>,
-        expected: AnnotType<Kind, Name>,
-        actual: AnnotType<Kind, Name>,
+        expected: Type<Name>,
+        actual: Type<Name>,
     },
     ExpectedFunc {
         context: Context<Name>,
         in_expr: Expr<Name>,
-        actual: AnnotType<Kind, Name>,
+        actual: Type<Name>,
     },
     ExpectedPair {
         context: Context<Name>,
         in_expr: Expr<Name>,
-        actual: AnnotType<Kind, Name>,
+        actual: Type<Name>,
     },
     ExpectedExists {
         context: Context<Name>,
         in_expr: Expr<Name>,
-        actual: AnnotType<Kind, Name>,
+        actual: Type<Name>,
     },
     ExpectedForAll {
         context: Context<Name>,
         in_expr: Expr<Name>,
-        actual: AnnotType<Kind, Name>,
+        actual: Type<Name>,
     },
     MovedTwice { context: Context<Name>, var: usize },
     NotMoved { context: Context<Name>, var: usize },
@@ -49,14 +40,6 @@ pub enum Error<Name> {
         expected_parameters: usize,
         actual_parameters: usize,
     },
-}
-
-// Like raw annot_kinds, but wraps errors appropriately
-fn annot_kinds<Name: Clone>(
-    ctx: &mut Context<Name>,
-    ty: Type<Name>,
-) -> Result<AnnotType<Kind, Name>, Error<Name>> {
-    annot_kinds::annot_kinds(ctx, ty).map_err(Error::Kind)
 }
 
 fn is_copyable_primitive<TAnnot: Clone, Name: Clone>(ty: &AnnotType<TAnnot, Name>) -> bool {
@@ -93,26 +76,10 @@ fn check_moved_in_scope<Name: Clone>(ctx: &Context<Name>) -> Result<(), Error<Na
     Ok(())
 }
 
-fn check_kind<Name: Clone>(
-    ctx: &Context<Name>,
-    ty: &AnnotType<Kind, Name>,
-    expected: &Kind,
-) -> Result<(), Error<Name>> {
-    if equiv_kind(&ty.annot(), expected) {
-        Ok(())
-    } else {
-        Err(Error::KindMismatch {
-            context: ctx.clone(),
-            expected: expected.clone(),
-            actual: ty.clone(),
-        })
-    }
-}
-
 pub fn annot_types<Name: Clone>(
     ctx: &mut Context<Name>,
     ex: Expr<Name>,
-) -> Result<AnnotExpr<Kind, AnnotType<Kind, Name>, Name>, Error<Name>> {
+) -> Result<AnnotExpr<(), Type<Name>, Name>, Error<Name>> {
     assert_eq!(
         ex.free_vars(),
         ctx.var_index_count(),
@@ -133,10 +100,7 @@ pub fn annot_types<Name: Clone>(
             free_types,
         } => {
             Ok(AnnotExpr::from_content_annot(
-                AnnotType::from_content_annot(
-                    Kind::Type,
-                    TypeContent::Unit { free: free_types },
-                ),
+                Type::from_content(TypeContent::Unit { free: free_types }),
                 ExprContent::Unit {
                     free_vars,
                     free_types,
@@ -181,25 +145,19 @@ pub fn annot_types<Name: Clone>(
 
         ExprContent::ForAll { type_params, body } => {
             ctx.push_scope();
-
             for param in type_params.iter() {
-                ctx.add_type_kind(param.name.clone(), param.kind.clone());
+                ctx.add_type(param.name.clone());
             }
-
             let body_annot = annot_types(ctx, body)?;
-
             ctx.pop_scope();
 
             let mut result_type = body_annot.annot();
             for type_param in type_params.iter().rev() {
-                result_type = AnnotType::from_content_annot(
-                    Kind::Type,
-                    TypeContent::Quantified {
-                        quantifier: Quantifier::ForAll,
-                        param: type_param.clone(),
-                        body: result_type,
-                    },
-                )
+                result_type = Type::from_content(TypeContent::Quantified {
+                    quantifier: Quantifier::ForAll,
+                    param: type_param.clone(),
+                    body: result_type,
+                })
             }
 
             Ok(AnnotExpr::from_content_annot(
@@ -217,27 +175,19 @@ pub fn annot_types<Name: Clone>(
             body,
         } => {
             ctx.push_scope();
-
-            let arg_type_annot = annot_kinds(ctx, arg_type)?;
-            check_kind(ctx, &arg_type_annot, &Kind::Type)?;
-            ctx.add_var_unmoved(arg_name.clone(), arg_type_annot.clone());
-
+            ctx.add_var_unmoved(arg_name.clone(), arg_type.clone());
             let body_annot = annot_types(ctx, body)?;
-
             check_moved_in_scope(ctx)?;
             ctx.pop_scope();
 
             Ok(AnnotExpr::from_content_annot(
-                AnnotType::from_content_annot(
-                    Kind::Type,
-                    TypeContent::Func {
-                        arg: arg_type_annot.clone(),
-                        ret: body_annot.annot(),
-                    },
-                ),
+                Type::from_content(TypeContent::Func {
+                    arg: arg_type.clone(),
+                    ret: body_annot.annot(),
+                }),
                 ExprContent::Func {
                     arg_name,
-                    arg_type: arg_type_annot,
+                    arg_type,
                     body: body_annot,
                 },
             ))
@@ -249,28 +199,14 @@ pub fn annot_types<Name: Clone>(
         } => {
             let receiver_annot = annot_types(ctx, receiver)?;
 
-            let mut type_params_annot = Vec::with_capacity(type_params.len());
-            for param in type_params.iter() {
-                let param_annot = annot_kinds(ctx, param.clone())?;
-                type_params_annot.push(param_annot);
-            }
-
             let mut nested_receiver_ty = receiver_annot.annot();
-            for param_annot in type_params_annot.iter() {
+            for _ in 0..type_params.len() {
                 if let TypeContent::Quantified {
                     quantifier: Quantifier::ForAll,
-                    param: expected_param,
+                    param: _,
                     body,
                 } = nested_receiver_ty.to_content()
                 {
-                    let expected = expected_param.kind;
-                    if !equiv_kind(&param_annot.annot(), &expected) {
-                        return Err(Error::KindMismatch {
-                            context: ctx.clone(),
-                            actual: param_annot.clone(),
-                            expected,
-                        });
-                    }
                     nested_receiver_ty = body;
                 } else {
                     return Err(Error::ExpectedForAll {
@@ -281,13 +217,13 @@ pub fn annot_types<Name: Clone>(
                 }
             }
 
-            let receiver_ty_instantiated = nested_receiver_ty.subst(&type_params_annot);
+            let receiver_ty_instantiated = nested_receiver_ty.subst(&type_params);
 
             Ok(AnnotExpr::from_content_annot(
                 receiver_ty_instantiated,
                 ExprContent::Inst {
                     receiver: receiver_annot,
-                    type_params: Rc::new(type_params_annot),
+                    type_params,
                 },
             ))
         }
@@ -325,13 +261,10 @@ pub fn annot_types<Name: Clone>(
             let left_annot = annot_types(ctx, left)?;
             let right_annot = annot_types(ctx, right)?;
             Ok(AnnotExpr::from_content_annot(
-                AnnotType::from_content_annot(
-                    Kind::Type,
-                    TypeContent::Pair {
-                        left: left_annot.annot(),
-                        right: right_annot.annot(),
-                    },
-                ),
+                Type::from_content(TypeContent::Pair {
+                    left: left_annot.annot(),
+                    right: right_annot.annot(),
+                }),
                 ExprContent::Pair {
                     left: left_annot,
                     right: right_annot,
@@ -392,11 +325,11 @@ pub fn annot_types<Name: Clone>(
             for type_name in type_names.iter() {
                 if let TypeContent::Quantified {
                     quantifier: Quantifier::Exists,
-                    param,
+                    param: _,
                     body,
                 } = nested.to_content()
                 {
-                    ctx.add_type_kind(type_name.clone(), param.kind);
+                    ctx.add_type(type_name.clone());
                     nested = body;
                 } else {
                     let mut outer_ctx = ctx.clone();
@@ -432,26 +365,13 @@ pub fn annot_types<Name: Clone>(
             type_body,
             body,
         } => {
-            let mut params_annot = Vec::with_capacity(params.len());
-            for (name, ty) in params.iter().cloned() {
-                let ty_annot = annot_kinds(ctx, ty.clone())?;
-                params_annot.push((name, ty_annot));
-            }
-
-            ctx.push_scope();
-            for &(ref name, ref ty_annot) in params_annot.iter() {
-                ctx.add_type_kind(name.clone(), ty_annot.annot());
-            }
-            let type_body_annot = annot_kinds(ctx, type_body)?;
-            ctx.pop_scope();
-
             let body_annot = annot_types(ctx, body)?;
 
-            let substitutions = params_annot
+            let substitutions = params
                 .iter()
                 .map(|&(_, ref ty)| ty.clone())
                 .collect::<Vec<_>>();
-            let instantiated_type_body = type_body_annot.subst(&substitutions);
+            let instantiated_type_body = type_body.subst(&substitutions);
 
             if !equiv(instantiated_type_body.clone(), body_annot.annot()) {
                 return Err(Error::Mismatch {
@@ -462,26 +382,20 @@ pub fn annot_types<Name: Clone>(
                 });
             }
 
-            let mut result_type = type_body_annot.clone();
-            for (name, ty_annot) in params_annot.iter().rev().cloned() {
-                result_type = AnnotType::from_content_annot(
-                    Kind::Type,
-                    TypeContent::Quantified {
-                        quantifier: Quantifier::Exists,
-                        param: TypeParam {
-                            name,
-                            kind: ty_annot.annot(),
-                        },
-                        body: result_type,
-                    },
-                );
+            let mut result_type = type_body.clone();
+            for &(ref name, _) in params.iter().rev() {
+                result_type = Type::from_content(TypeContent::Quantified {
+                    quantifier: Quantifier::Exists,
+                    param: TypeParam { name: name.clone() },
+                    body: result_type,
+                });
             }
 
             Ok(AnnotExpr::from_content_annot(
                 result_type,
                 ExprContent::MakeExists {
-                    params: Rc::new(params_annot),
-                    type_body: type_body_annot,
+                    params,
+                    type_body,
                     body: body_annot,
                 },
             ))

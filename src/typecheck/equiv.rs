@@ -1,11 +1,5 @@
 use types::*;
 
-pub fn equiv_kind(kind1: &Kind, kind2: &Kind) -> bool {
-    // Currently, because kinds contain no variables with display name information, they are
-    // equivalent iff they are syntactically identical.  This may change in the future.
-    kind1 == kind2
-}
-
 pub fn equiv<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
     ty1: AnnotType<TAnnot1, Name1>,
     ty2: AnnotType<TAnnot2, Name2>,
@@ -29,17 +23,14 @@ pub fn equiv<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
 
         (TypeContent::Quantified {
              quantifier: quantifier1,
-             param: param1,
+             param: _,
              body: body1,
          },
          TypeContent::Quantified {
              quantifier: quantifier2,
-             param: param2,
+             param: _,
              body: body2,
-         }) => {
-            quantifier1 == quantifier2 && equiv_kind(&param1.kind, &param2.kind) &&
-                equiv(body1, body2)
-        }
+         }) => quantifier1 == quantifier2 && equiv(body1, body2),
 
         (TypeContent::Func {
              arg: arg1,
@@ -100,23 +91,18 @@ mod test {
     #[test]
     fn equiv_exists() {
         assert!(equiv(
-            exists_named("x", Kind::Type, var(2, 0)),
-            exists_named("x", Kind::Type, var(2, 0)),
+            exists_named("x", var(2, 0)),
+            exists_named("x", var(2, 0)),
         ));
 
         assert!(equiv(
-            exists_named("name", Kind::Type, var(2, 0)),
-            exists_named("different_name", Kind::Type, var(2, 0)),
+            exists_named("name", var(2, 0)),
+            exists_named("different_name", var(2, 0)),
         ));
 
         assert!(!equiv(
-            exists_named("x", Kind::Type, var(2, 0)),
-            exists_named("x", Kind::Place, var(2, 0)),
-        ));
-
-        assert!(!equiv(
-            exists_named("x", Kind::Type, var(2, 0)),
-            exists_named("x", Kind::Type, var(2, 1)),
+            exists_named("x", var(2, 0)),
+            exists_named("x", var(2, 1)),
         ));
     }
 
@@ -141,81 +127,28 @@ mod test {
     #[test]
     fn equiv_forall() {
         assert!(equiv(
-            func_forall_named(
-                &[("T", Kind::Type), ("U", Kind::Place)],
-                var(2, 0),
-                var(2, 1),
-            ),
-            func_forall_named(
-                &[("T", Kind::Type), ("U", Kind::Place)],
-                var(2, 0),
-                var(2, 1),
-            ),
+            func_forall_named(&["T", "U"], var(2, 0), var(2, 1)),
+            func_forall_named(&["T", "U"], var(2, 0), var(2, 1)),
         ));
 
         assert!(equiv(
-            func_forall_named(
-                &[("T", Kind::Type), ("U", Kind::Place)],
-                var(2, 0),
-                var(2, 1),
-            ),
-            func_forall_named(
-                &[("V", Kind::Type), ("W", Kind::Place)],
-                var(2, 0),
-                var(2, 1),
-            ),
+            func_forall_named(&["T", "U"], var(2, 0), var(2, 1)),
+            func_forall_named(&["V", "W"], var(2, 0), var(2, 1)),
         ));
 
         assert!(!equiv(
-            func_forall_named(
-                &[("T", Kind::Type), ("U", Kind::Place)],
-                var(2, 0),
-                var(2, 1),
-            ),
-            func_forall_named(
-                &[("T", Kind::Type), ("U", Kind::Place), ("V", Kind::Type)],
-                var(3, 0),
-                var(3, 1),
-            ),
+            func_forall_named(&["T", "U"], var(2, 0), var(2, 1)),
+            func_forall_named(&["T", "U", "V"], var(3, 0), var(3, 1)),
         ));
 
         assert!(!equiv(
-            func_forall_named(
-                &[("T", Kind::Type), ("U", Kind::Version)],
-                var(2, 0),
-                var(2, 1),
-            ),
-            func_forall_named(
-                &[("T", Kind::Place), ("U", Kind::Version)],
-                var(2, 0),
-                var(2, 1),
-            ),
+            func_forall_named(&["T", "U"], var(3, 0), var(3, 2)),
+            func_forall_named(&["T", "U"], var(3, 1), var(3, 2)),
         ));
 
         assert!(!equiv(
-            func_forall_named(
-                &[("T", Kind::Type), ("U", Kind::Version)],
-                var(3, 0),
-                var(3, 2),
-            ),
-            func_forall_named(
-                &[("T", Kind::Place), ("U", Kind::Version)],
-                var(3, 1),
-                var(3, 2),
-            ),
-        ));
-
-        assert!(!equiv(
-            func_forall_named(
-                &[("T", Kind::Type), ("U", Kind::Version)],
-                var(3, 0),
-                var(3, 1),
-            ),
-            func_forall_named(
-                &[("T", Kind::Place), ("U", Kind::Version)],
-                var(3, 0),
-                var(3, 2),
-            ),
+            func_forall_named(&["T", "U"], var(3, 0), var(3, 1)),
+            func_forall_named(&["T", "U"], var(3, 0), var(3, 2)),
         ));
     }
 

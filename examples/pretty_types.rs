@@ -57,25 +57,17 @@ fn main() {
 
     println!();
     println!("Existentials:");
-    print_type(&mut names, exists_named("x", Kind::Type, var(3, 2)));
-    print_type(&mut names, exists_named("foo", Kind::Type, var(3, 2)));
+    print_type(&mut names, exists_named("x", var(3, 2)));
+    print_type(&mut names, exists_named("foo", var(3, 2)));
     print_type(
         &mut names,
-        exists_named(
-            "x",
-            Kind::Type,
-            exists_named("y", Kind::Type, pair(var(4, 2), var(4, 3))),
-        ),
+        exists_named("x", exists_named("y", pair(var(4, 2), var(4, 3)))),
     );
 
     println!();
     println!("Universals:");
     print_type(
         &mut names,
-        func_forall_named(
-            &[("x", Kind::Type), ("y", Kind::Type)],
-            var(4, 2),
-            var(4, 3),
-        ),
+        func_forall_named(&["x", "y"], var(4, 2), var(4, 3)),
     );
 }

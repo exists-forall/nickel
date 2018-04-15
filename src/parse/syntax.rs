@@ -1,4 +1,4 @@
-use types::{Kind, Quantifier};
+use types::Quantifier;
 use expr::VarUsage;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -10,7 +10,6 @@ pub struct Ident {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeParam {
     pub ident: Ident,
-    pub kind: Kind,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

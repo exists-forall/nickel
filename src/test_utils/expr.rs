@@ -20,36 +20,24 @@ pub fn var(usage: VarUsage, free_vars: usize, free_types: usize, index: usize) -
     })
 }
 
-pub fn forall(param_kinds: &[Kind], body: Expr<Rc<String>>) -> Expr<Rc<String>> {
+pub fn forall(param_count: usize, body: Expr<Rc<String>>) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::ForAll {
         type_params: Rc::new(
-            param_kinds
-                .iter()
-                .cloned()
-                .map(|kind| {
-                    TypeParam {
-                        name: Rc::new("".to_owned()),
-                        kind,
-                    }
-                })
+            repeat(TypeParam { name: Rc::new("".to_owned()) })
+                .take(param_count)
                 .collect(),
         ),
         body,
     })
 }
 
-pub fn forall_named(params: &[(&str, Kind)], body: Expr<Rc<String>>) -> Expr<Rc<String>> {
+pub fn forall_named(params: &[&str], body: Expr<Rc<String>>) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::ForAll {
         type_params: Rc::new(
             params
                 .iter()
                 .cloned()
-                .map(|(name, kind)| {
-                    TypeParam {
-                        name: Rc::new(name.to_owned()),
-                        kind,
-                    }
-                })
+                .map(|name| TypeParam { name: Rc::new(name.to_owned()) })
                 .collect(),
         ),
         body,
@@ -65,11 +53,11 @@ pub fn func(arg_type: Type<Rc<String>>, body: Expr<Rc<String>>) -> Expr<Rc<Strin
 }
 
 pub fn func_forall(
-    param_kinds: &[Kind],
+    param_count: usize,
     arg_type: Type<Rc<String>>,
     body: Expr<Rc<String>>,
 ) -> Expr<Rc<String>> {
-    forall(param_kinds, func(arg_type, body))
+    forall(param_count, func(arg_type, body))
 }
 
 pub fn func_named(
@@ -85,7 +73,7 @@ pub fn func_named(
 }
 
 pub fn func_forall_named(
-    params: &[(&str, Kind)],
+    params: &[&str],
     arg_name: &str,
     arg_type: Type<Rc<String>>,
     body: Expr<Rc<String>>,

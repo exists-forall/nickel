@@ -1,7 +1,6 @@
 use std::ops::Range;
 
 use types::*;
-use super::equiv::equiv_kind;
 
 #[derive(Clone, Debug)]
 struct Scope {
@@ -18,13 +17,12 @@ pub enum Usage {
 #[derive(Clone, Debug)]
 struct TypeBinding<Name> {
     name: Name,
-    kind: Kind,
 }
 
 #[derive(Clone, Debug)]
 struct Var<Name> {
     name: Name,
-    ty: AnnotType<Kind, Name>,
+    ty: Type<Name>,
     usage: Usage,
 }
 
@@ -81,11 +79,7 @@ impl<Name: Clone> Context<Name> {
         &self.vars[index].name
     }
 
-    pub fn type_kind(&self, index: usize) -> &Kind {
-        &self.types[index].kind
-    }
-
-    pub fn var_type(&self, index: usize) -> &AnnotType<Kind, Name> {
+    pub fn var_type(&self, index: usize) -> &Type<Name> {
         &self.vars[index].ty
     }
 
@@ -103,12 +97,11 @@ impl<Name: Clone> Context<Name> {
         }
     }
 
-    pub fn add_type_kind(&mut self, name: Name, kind: Kind) {
-        self.types.push(TypeBinding { name, kind });
+    pub fn add_type(&mut self, name: Name) {
+        self.types.push(TypeBinding { name });
     }
 
-    pub fn add_var_unmoved(&mut self, name: Name, ty: AnnotType<Kind, Name>) {
-        debug_assert!(equiv_kind(&ty.annot(), &Kind::Type));
+    pub fn add_var_unmoved(&mut self, name: Name, ty: Type<Name>) {
         self.vars.push(Var {
             name,
             ty,

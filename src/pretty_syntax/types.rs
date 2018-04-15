@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, delimited, block};
+use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, block};
 
 use super::super::types::*;
 use pretty_syntax::names::Names;
@@ -14,43 +14,6 @@ pub enum Place {
     PairLeft,
     PairRight,
     AppLeft,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum KindPlace {
-    Root,
-    ConstructorResult,
-}
-
-pub fn kind_to_pretty(place: KindPlace, kind: &Kind) -> Box<Pretty> {
-    match kind {
-        &Kind::Type => Box::new("*"),
-        &Kind::Place => Box::new("Place"),
-        &Kind::Version => Box::new("Version"),
-        &Kind::Constructor {
-            ref params,
-            ref result,
-        } => {
-            let params_pretty = delimited(
-                &";".join(Sep(1)),
-                params.iter().map(
-                    |param| kind_to_pretty(KindPlace::Root, param),
-                ),
-            ).join(Conditional::OnlyBroken(";"));
-
-            let result_pretty = kind_to_pretty(KindPlace::ConstructorResult, result);
-
-            let content_pretty = Group::new("(".join(block(params_pretty)).join(")"))
-                .join(" ->")
-                .join(Sep(1))
-                .join(result_pretty);
-
-            match place {
-                KindPlace::Root => Box::new(Group::new(content_pretty)),
-                KindPlace::ConstructorResult => Box::new(content_pretty),
-            }
-        }
-    }
 }
 
 pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
@@ -75,12 +38,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             let body_pretty = to_pretty(names, Place::QuantifierBody, body);
             names.pop_scope();
 
-            let kind_pretty = kind_to_pretty(KindPlace::Root, &param.kind);
-            let param_pretty = Group::new(
-                "{"
-                    .join(block(name.join(" :").join(Sep(1)).join(kind_pretty)))
-                    .join("}"),
-            );
+            let param_pretty = Group::new("{".join(block(name)).join("}"));
 
             let quantifier_name = match quantifier {
                 Quantifier::Exists => "exists",

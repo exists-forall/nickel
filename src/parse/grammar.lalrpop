@@ -1,12 +1,9 @@
-use std::rc::Rc;
-
 use lalrpop_util::ParseError;
 
 use super::syntax;
 use super::lex;
 use types;
 use expr;
-use utils::rc_vec_view::RcVecView;
 
 grammar;
 
@@ -19,28 +16,10 @@ pub Ident: syntax::Ident = {
     },
 };
 
-pub Kind: types::Kind = {
-    "*" => types::Kind::Type,
-    "Place" => types::Kind::Place,
-    "Version" => types::Kind::Version,
-    "(" <Kind> ")",
-    "(" <params: (<Kind> ";")*> <final_param: Kind?> ")" "->" <result: Kind> => {
-        let mut all_params = params;
-        if let Some(final_param) = final_param {
-            all_params.push(final_param);
-        }
-        types::Kind::Constructor {
-            params: RcVecView::new(Rc::new(all_params)),
-            result: Rc::new(result),
-        }
-    },
-};
-
 TypeParam: syntax::TypeParam = {
-    <ident: Ident> ":" <kind: Kind> => {
+    <ident: Ident> => {
         syntax::TypeParam {
             ident,
-            kind,
         }
     },
 };

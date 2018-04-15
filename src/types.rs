@@ -1,22 +1,8 @@
 use std::rc::Rc;
 
-use utils::rc_vec_view::RcVecView;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Kind {
-    Type,
-    Place,
-    Version,
-    Constructor {
-        params: RcVecView<Kind>,
-        result: Rc<Kind>,
-    },
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeParam<Name> {
     pub name: Name,
-    pub kind: Kind,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -448,7 +434,6 @@ impl<Name: Clone> Type<Name> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use test_utils::types::*;
 
     #[test]
@@ -472,7 +457,7 @@ mod test {
     #[test]
     #[should_panic]
     fn invalid_exists() {
-        exists(Kind::Type, exists(Kind::Type, var(1, 0)));
+        exists(exists(var(1, 0)));
     }
 
     #[test]
@@ -484,7 +469,7 @@ mod test {
     #[test]
     #[should_panic]
     fn invalid_func_forall() {
-        func_forall(&[Kind::Type, Kind::Type], var(1, 0), var(1, 0));
+        func_forall(2, var(1, 0), var(1, 0));
     }
 
     #[test]
@@ -513,16 +498,16 @@ mod test {
 
     #[test]
     fn free_exists() {
-        assert_eq!(exists(Kind::Type, var(1, 0)).free(), 0);
-        assert_eq!(exists(Kind::Type, var(2, 0)).free(), 1);
-        assert_eq!(exists(Kind::Type, var(3, 2)).free(), 2);
+        assert_eq!(exists(var(1, 0)).free(), 0);
+        assert_eq!(exists(var(2, 0)).free(), 1);
+        assert_eq!(exists(var(3, 2)).free(), 2);
 
-        assert_eq!(exists(Kind::Type, var(1, 0)).free(), 0);
-        assert_eq!(exists(Kind::Type, var(2, 0)).free(), 1);
-        assert_eq!(exists(Kind::Type, var(3, 2)).free(), 2);
+        assert_eq!(exists(var(1, 0)).free(), 0);
+        assert_eq!(exists(var(2, 0)).free(), 1);
+        assert_eq!(exists(var(3, 2)).free(), 2);
 
-        assert_eq!(exists(Kind::Type, exists(Kind::Type, var(2, 1))).free(), 0);
-        assert_eq!(exists(Kind::Type, exists(Kind::Type, var(5, 1))).free(), 3);
+        assert_eq!(exists(exists(var(2, 1))).free(), 0);
+        assert_eq!(exists(exists(var(5, 1))).free(), 3);
     }
 
     #[test]
@@ -533,14 +518,9 @@ mod test {
 
     #[test]
     fn free_func_forall() {
-        assert_eq!(func_forall(&[Kind::Type], var(1, 0), var(1, 0)).free(), 0);
-
-        assert_eq!(func_forall(&[Kind::Type], var(2, 0), var(2, 1)).free(), 1);
-
-        assert_eq!(
-            func_forall(&[Kind::Type, Kind::Type], var(2, 0), var(2, 1)).free(),
-            0
-        );
+        assert_eq!(func_forall(1, var(1, 0), var(1, 0)).free(), 0);
+        assert_eq!(func_forall(1, var(2, 0), var(2, 1)).free(), 1);
+        assert_eq!(func_forall(2, var(2, 0), var(2, 1)).free(), 0);
     }
 
     #[test]
@@ -573,45 +553,15 @@ mod test {
 
     #[test]
     fn accomodate_free_exists() {
+        assert_eq!(exists(var(1, 0)).accomodate_free(0), exists(var(1, 0)));
+        assert_eq!(exists(var(1, 0)).accomodate_free(3), exists(var(4, 3)));
+        assert_eq!(exists(var(2, 0)).accomodate_free(1), exists(var(2, 0)));
+        assert_eq!(exists(var(2, 0)).accomodate_free(5), exists(var(6, 0)));
+        assert_eq!(exists(var(2, 1)).accomodate_free(1), exists(var(2, 1)));
+        assert_eq!(exists(var(2, 1)).accomodate_free(5), exists(var(6, 5)));
         assert_eq!(
-            exists(Kind::Type, var(1, 0)).accomodate_free(0),
-            exists(Kind::Type, var(1, 0))
-        );
-
-        assert_eq!(
-            exists(Kind::Type, var(1, 0)).accomodate_free(3),
-            exists(Kind::Type, var(4, 3))
-        );
-
-        assert_eq!(
-            exists(Kind::Type, var(2, 0)).accomodate_free(1),
-            exists(Kind::Type, var(2, 0))
-        );
-
-        assert_eq!(
-            exists(Kind::Type, var(2, 0)).accomodate_free(5),
-            exists(Kind::Type, var(6, 0))
-        );
-
-        assert_eq!(
-            exists(Kind::Type, var(2, 1)).accomodate_free(1),
-            exists(Kind::Type, var(2, 1))
-        );
-
-        assert_eq!(
-            exists(Kind::Type, var(2, 1)).accomodate_free(5),
-            exists(Kind::Type, var(6, 5))
-        );
-
-        assert_eq!(
-            exists(
-                Kind::Type,
-                exists(Kind::Type, pair(pair(var(3, 0), var(3, 1)), var(3, 2))),
-            ).accomodate_free(2),
-            exists(
-                Kind::Type,
-                exists(Kind::Type, pair(pair(var(4, 0), var(4, 2)), var(4, 3))),
-            )
+            exists(exists(pair(pair(var(3, 0), var(3, 1)), var(3, 2)))).accomodate_free(2),
+            exists(exists(pair(pair(var(4, 0), var(4, 2)), var(4, 3))))
         );
     }
 
@@ -626,28 +576,20 @@ mod test {
     #[test]
     fn accomodate_free_func_forall() {
         assert_eq!(
-            func_forall(&[Kind::Type], var(2, 0), var(2, 1)).accomodate_free(2),
-            func_forall(&[Kind::Type], var(3, 0), var(3, 2))
+            func_forall(1, var(2, 0), var(2, 1)).accomodate_free(2),
+            func_forall(1, var(3, 0), var(3, 2))
         );
 
         assert_eq!(
             func_forall(
-                &[Kind::Type],
+                1,
                 pair(var(2, 0), var(2, 1)),
-                func_forall(
-                    &[Kind::Type, Kind::Type],
-                    pair(var(4, 0), var(4, 1)),
-                    pair(var(4, 2), var(4, 3)),
-                ),
+                func_forall(2, pair(var(4, 0), var(4, 1)), pair(var(4, 2), var(4, 3))),
             ).accomodate_free(3),
             func_forall(
-                &[Kind::Type],
+                1,
                 pair(var(4, 0), var(4, 3)),
-                func_forall(
-                    &[Kind::Type, Kind::Type],
-                    pair(var(6, 0), var(6, 3)),
-                    pair(var(6, 4), var(6, 5)),
-                ),
+                func_forall(2, pair(var(6, 0), var(6, 3)), pair(var(6, 4), var(6, 5))),
             )
         );
     }
@@ -716,60 +658,59 @@ mod test {
     #[test]
     fn subst_exists() {
         assert_eq!(
-            exists(Kind::Type, pair(var(3, 1), var(3, 2))).subst(&[pair(var(1, 0), var(1, 0))]),
-            exists(Kind::Type, pair(pair(var(2, 0), var(2, 0)), var(2, 1)))
+            exists(pair(var(3, 1), var(3, 2))).subst(&[pair(var(1, 0), var(1, 0))]),
+            exists(pair(pair(var(2, 0), var(2, 0)), var(2, 1)))
         );
 
         assert_eq!(
-            pair(var(2, 0), var(2, 1)).subst(&[exists(Kind::Type, var(2, 1))]),
-            pair(var(1, 0), exists(Kind::Type, var(2, 1)))
+            pair(var(2, 0), var(2, 1)).subst(&[exists(var(2, 1))]),
+            pair(var(1, 0), exists(var(2, 1)))
         );
 
         assert_eq!(
-            exists(Kind::Type, pair(var(3, 0), pair(var(3, 1), var(3, 2))))
-                .subst(&[exists(Kind::Type, pair(var(2, 0), var(2, 1)))]),
-            exists(
-                Kind::Type,
-                pair(
-                    var(2, 0),
-                    pair(exists(Kind::Type, pair(var(3, 0), var(3, 2))), var(2, 1)),
-                ),
-            )
+            exists(pair(var(3, 0), pair(var(3, 1), var(3, 2)))).subst(
+                &[
+                    exists(
+                        pair(
+                            var(
+                                2,
+                                0,
+                            ),
+                            var(
+                                2,
+                                1,
+                            ),
+                        ),
+                    ),
+                ],
+            ),
+            exists(pair(
+                var(2, 0),
+                pair(exists(pair(var(3, 0), var(3, 2))), var(2, 1)),
+            ))
         );
     }
 
     #[test]
     fn subst_func_forall() {
         assert_eq!(
-            func_forall(&[Kind::Type], var(3, 1), var(3, 2)).subst(&[var(1, 0)]),
-            func_forall(&[Kind::Type], var(2, 0), var(2, 1))
+            func_forall(1, var(3, 1), var(3, 2)).subst(&[var(1, 0)]),
+            func_forall(1, var(2, 0), var(2, 1))
         );
 
         assert_eq!(
-            func_forall(&[Kind::Type], var(3, 2), var(3, 1)).subst(&[var(1, 0)]),
-            func_forall(&[Kind::Type], var(2, 1), var(2, 0))
+            func_forall(1, var(3, 2), var(3, 1)).subst(&[var(1, 0)]),
+            func_forall(1, var(2, 1), var(2, 0))
         );
 
         assert_eq!(
-            func_forall(&[Kind::Type], var(2, 0), var(2, 1)).subst(
-                &[func_forall(&[Kind::Type], var(1, 0), var(1, 0))],
-            ),
-            func_forall(
-                &[Kind::Type],
-                func_forall(&[Kind::Type], var(2, 1), var(2, 1)),
-                var(1, 0),
-            )
+            func_forall(1, var(2, 0), var(2, 1)).subst(&[func_forall(1, var(1, 0), var(1, 0))]),
+            func_forall(1, func_forall(1, var(2, 1), var(2, 1)), var(1, 0))
         );
 
         assert_eq!(
-            func_forall(&[Kind::Type], var(3, 1), var(3, 2)).subst(
-                &[func_forall(&[Kind::Type], var(2, 0), var(2, 1))],
-            ),
-            func_forall(
-                &[Kind::Type],
-                func_forall(&[Kind::Type], var(3, 0), var(3, 2)),
-                var(2, 1),
-            )
+            func_forall(1, var(3, 1), var(3, 2)).subst(&[func_forall(1, var(2, 0), var(2, 1))]),
+            func_forall(1, func_forall(1, var(3, 0), var(3, 2)), var(2, 1))
         );
     }
 }
