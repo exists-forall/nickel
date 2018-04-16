@@ -262,5 +262,24 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
                 body: convert_expr(ctx, *body)?,
             }))
         }
+
+        syntax::Expr::Cast {
+            param,
+            type_body,
+            equivalence,
+            body,
+        } => {
+            ctx.type_names.push_scope();
+            ctx.type_names.add_name(param.ident.clone())?;
+            let converted_type_body = convert_type(&mut ctx.type_names, type_body)?;
+            ctx.type_names.pop_scope();
+
+            Ok(expr::Expr::from_content(expr::ExprContent::Cast {
+                param: types::TypeParam { name: Rc::new(param.ident.name) },
+                type_body: converted_type_body,
+                equivalence: convert_expr(ctx, *equivalence)?,
+                body: convert_expr(ctx, *body)?,
+            }))
+        }
     }
 }

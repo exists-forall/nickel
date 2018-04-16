@@ -188,6 +188,17 @@ BlockExpr: syntax::Expr = {
             body: Box::new(body),
         }
     },
+
+    "cast" "{" <param: TypeParam> "}" <type_body: Type>
+    "by" <equivalence: Expr>
+    "of" <body: BlockExpr> => {
+        syntax::Expr::Cast {
+            param,
+            type_body,
+            equivalence: Box::new(equivalence),
+            body: Box::new(body),
+        }
+    }
 };
 
 PairExpr: syntax::Expr = {
@@ -220,6 +231,8 @@ extern {
         "in" => lex::Token::KeyIn,
         "make_exists" => lex::Token::KeyMakeExists,
         "of" => lex::Token::KeyOf,
+        "cast" => lex::Token::KeyCast,
+        "by" => lex::Token::KeyBy,
 
         "forall" => lex::Token::KeyForall,
         "exists" => lex::Token::KeyExists,

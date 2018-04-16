@@ -65,4 +65,10 @@ pub enum Expr {
         type_body: Type,
         body: Box<Expr>,
     },
+    Cast {
+        param: TypeParam,
+        type_body: Type,
+        equivalence: Box<Expr>,
+        body: Box<Expr>,
+    },
 }
