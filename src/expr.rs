@@ -58,6 +58,13 @@ enum ExprDataInner<TAnnot, EAnnot, Name> {
         type_body: AnnotType<TAnnot, Name>,
         body: ExprData<TAnnot, EAnnot, Name>,
     },
+
+    Cast {
+        param: TypeParam<Name>,
+        type_body: AnnotType<TAnnot, Name>,
+        equivalence: ExprData<TAnnot, EAnnot, Name>,
+        body: ExprData<TAnnot, EAnnot, Name>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -119,6 +126,13 @@ pub enum ExprContent<TAnnot, EAnnot, Name> {
     MakeExists {
         params: Rc<Vec<(Name, AnnotType<TAnnot, Name>)>>,
         type_body: AnnotType<TAnnot, Name>,
+        body: AnnotExpr<TAnnot, EAnnot, Name>,
+    },
+
+    Cast {
+        param: TypeParam<Name>,
+        type_body: AnnotType<TAnnot, Name>,
+        equivalence: AnnotExpr<TAnnot, EAnnot, Name>,
         body: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 }
@@ -401,6 +415,45 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                     },
                 }
             }
+
+            ExprContent::Cast {
+                param,
+                type_body,
+                equivalence,
+                body,
+            } => {
+                assert_eq!(
+                    equivalence.free_types,
+                    body.free_types,
+                    "Free type variables do not match",
+                );
+
+                assert_eq!(
+                    equivalence.free_vars,
+                    body.free_vars,
+                    "Free term variables do not match",
+                );
+
+                assert_eq!(
+                    type_body.free(),
+                    body.free_vars + 1,
+                    "Free type variables do not match"
+                );
+
+                AnnotExpr {
+                    free_vars: body.free_vars,
+                    free_types: body.free_types,
+                    data: ExprData {
+                        annot,
+                        inner: Rc::new(ExprDataInner::Cast {
+                            param,
+                            type_body,
+                            equivalence: equivalence.data,
+                            body: body.data,
+                        }),
+                    },
+                }
+            }
         }
     }
 
@@ -552,6 +605,28 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                 ExprContent::MakeExists {
                     params: params.clone(),
                     type_body: type_body.clone(),
+                    body: AnnotExpr {
+                        free_vars: self.free_vars,
+                        free_types: self.free_types,
+                        data: body.clone(),
+                    },
+                }
+            }
+
+            &ExprDataInner::Cast {
+                ref param,
+                ref type_body,
+                ref equivalence,
+                ref body,
+            } => {
+                ExprContent::Cast {
+                    param: param.clone(),
+                    type_body: type_body.clone(),
+                    equivalence: AnnotExpr {
+                        free_vars: self.free_vars,
+                        free_types: self.free_types,
+                        data: equivalence.clone(),
+                    },
                     body: AnnotExpr {
                         free_vars: self.free_vars,
                         free_types: self.free_types,

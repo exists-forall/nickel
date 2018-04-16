@@ -16,6 +16,7 @@ pub enum Place {
     LetBody,
     MakeExistsBody,
     ForAllBody,
+    CastBody,
 }
 
 pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
@@ -74,7 +75,9 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
 
             match place {
                 Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::LetBody | Place::MakeExistsBody => Box::new(Group::new(content_pretty)),
+                Place::LetBody | Place::MakeExistsBody | Place::CastBody => Box::new(Group::new(
+                    content_pretty,
+                )),
 
                 Place::ForAllBody => Box::new(content_pretty),
 
@@ -111,9 +114,9 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
 
             match place {
                 Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::LetBody | Place::MakeExistsBody | Place::ForAllBody => Box::new(Group::new(
-                    content_pretty,
-                )),
+                Place::LetBody | Place::MakeExistsBody | Place::ForAllBody | Place::CastBody => {
+                    Box::new(Group::new(content_pretty))
+                }
 
                 _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
             }
@@ -219,7 +222,11 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 Place::LetBody => Box::new(content_pretty),
 
                 Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::MakeExistsBody | Place::ForAllBody => Box::new(Group::new(content_pretty)),
+                Place::MakeExistsBody | Place::ForAllBody | Place::CastBody => Box::new(
+                    Group::new(
+                        content_pretty,
+                    ),
+                ),
 
                 _ => Box::new("(".join(block(content_pretty)).join(")")),
             }
@@ -274,7 +281,11 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 Place::LetBody => Box::new(content_pretty),
 
                 Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::MakeExistsBody | Place::ForAllBody => Box::new(Group::new(content_pretty)),
+                Place::MakeExistsBody | Place::ForAllBody | Place::CastBody => Box::new(
+                    Group::new(
+                        content_pretty,
+                    ),
+                ),
 
                 _ => Box::new("(".join(block(content_pretty)).join(")")),
             }
@@ -331,7 +342,53 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 Place::MakeExistsBody => Box::new(content_pretty),
 
                 Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::LetBody | Place::ForAllBody => Box::new(Group::new(content_pretty)),
+                Place::LetBody | Place::ForAllBody | Place::CastBody => Box::new(
+                    Group::new(content_pretty),
+                ),
+
+                _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
+            }
+        }
+
+        ExprContent::Cast {
+            param,
+            type_body,
+            equivalence,
+            body,
+        } => {
+            type_names.push_scope();
+
+            let name_pretty = type_names.add_name(param.name.clone().into());
+            let param_pretty = "{".join(name_pretty).join("}");
+
+            let type_body_pretty =
+                types::to_pretty(type_names, types::Place::Root, type_body.clone());
+
+            type_names.pop_scope();
+
+            let equivalence_pretty =
+                to_pretty(var_names, type_names, Place::Root, equivalence.clone());
+
+            let body_pretty = to_pretty(var_names, type_names, Place::CastBody, body.clone());
+
+            let head_pretty = Group::new("cast".join(Indent(Sep(1).join(Group::new(
+                param_pretty.join(Sep(1)).join(type_body_pretty),
+            )))));
+
+            let by_pretty = Group::new("by".join(
+                Indent(Sep(1).join(Group::new(equivalence_pretty))),
+            ));
+
+            let of_pretty = "of".join(Sep(1)).join(body_pretty);
+
+            let content_pretty =
+                Group::new(head_pretty.join(Sep(1)).join(by_pretty)).join(of_pretty);
+
+            match place {
+                Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
+                Place::LetBody | Place::MakeExistsBody | Place::ForAllBody | Place::CastBody => {
+                    Box::new(Group::new(content_pretty))
+                }
 
                 _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
             }

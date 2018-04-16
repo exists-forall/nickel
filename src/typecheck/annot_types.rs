@@ -31,6 +31,11 @@ pub enum Error<Name> {
         in_expr: Expr<Name>,
         actual: Type<Name>,
     },
+    ExpectedEquivalence {
+        context: Context<Name>,
+        in_expr: Expr<Name>,
+        actual: Type<Name>,
+    },
     MovedTwice { context: Context<Name>, var: usize },
     NotMoved { context: Context<Name>, var: usize },
     IllegalCopy { context: Context<Name>, var: usize },
@@ -399,6 +404,46 @@ pub fn annot_types<Name: Clone>(
                     body: body_annot,
                 },
             ))
+        }
+
+        ExprContent::Cast {
+            param,
+            type_body,
+            equivalence,
+            body,
+        } => {
+            let equivalence_annot = annot_types(ctx, equivalence)?;
+            let body_annot = annot_types(ctx, body)?;
+
+            if let TypeContent::Equiv { orig, dest } = equivalence_annot.annot().to_content() {
+                let type_body_orig = type_body.subst(&[orig]);
+                let type_body_dest = type_body.subst(&[dest]);
+
+                if !equiv(type_body_orig.clone(), body_annot.annot()) {
+                    return Err(Error::Mismatch {
+                        context: ctx.clone(),
+                        in_expr: ex,
+                        expected: type_body_orig,
+                        actual: body_annot.annot(),
+                    });
+                }
+
+                Ok(AnnotExpr::from_content_annot(
+                    type_body_dest,
+                    ExprContent::Cast {
+                        param,
+                        type_body,
+                        equivalence: equivalence_annot,
+                        body: body_annot,
+                    },
+                ))
+            } else {
+                return Err(Error::ExpectedEquivalence {
+                    context: ctx.clone(),
+                    in_expr: ex,
+                    actual: equivalence_annot.annot(),
+                });
+            }
         }
     }
 }
