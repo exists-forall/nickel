@@ -393,5 +393,11 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
             }
         }
+
+        ExprContent::ReflEquiv { free_vars: _, ty } => {
+            let ty_pretty = types::to_pretty(type_names, types::Place::Root, ty.clone());
+
+            Box::new(Group::new("refl_equiv{".join(block(ty_pretty)).join("}")))
+        }
     }
 }

@@ -65,6 +65,8 @@ enum ExprDataInner<TAnnot, EAnnot, Name> {
         equivalence: ExprData<TAnnot, EAnnot, Name>,
         body: ExprData<TAnnot, EAnnot, Name>,
     },
+
+    ReflEquiv { ty: AnnotType<TAnnot, Name> },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -134,6 +136,11 @@ pub enum ExprContent<TAnnot, EAnnot, Name> {
         type_body: AnnotType<TAnnot, Name>,
         equivalence: AnnotExpr<TAnnot, EAnnot, Name>,
         body: AnnotExpr<TAnnot, EAnnot, Name>,
+    },
+
+    ReflEquiv {
+        free_vars: usize,
+        ty: AnnotType<TAnnot, Name>,
     },
 }
 
@@ -454,6 +461,17 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                     },
                 }
             }
+
+            ExprContent::ReflEquiv { free_vars, ty } => {
+                AnnotExpr {
+                    free_vars,
+                    free_types: ty.free(),
+                    data: ExprData {
+                        annot,
+                        inner: Rc::new(ExprDataInner::ReflEquiv { ty }),
+                    },
+                }
+            }
         }
     }
 
@@ -632,6 +650,13 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                         free_types: self.free_types,
                         data: body.clone(),
                     },
+                }
+            }
+
+            &ExprDataInner::ReflEquiv { ref ty } => {
+                ExprContent::ReflEquiv {
+                    free_vars: self.free_vars,
+                    ty: ty.clone(),
                 }
             }
         }

@@ -445,5 +445,15 @@ pub fn annot_types<Name: Clone>(
                 });
             }
         }
+
+        ExprContent::ReflEquiv { free_vars, ty } => {
+            Ok(AnnotExpr::from_content_annot(
+                Type::from_content(TypeContent::Equiv {
+                    orig: ty.clone(),
+                    dest: ty.clone(),
+                }),
+                ExprContent::ReflEquiv { free_vars, ty },
+            ))
+        }
     }
 }
