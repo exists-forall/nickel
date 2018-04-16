@@ -224,8 +224,6 @@ extern {
         "forall" => lex::Token::KeyForall,
         "exists" => lex::Token::KeyExists,
         "equiv" => lex::Token::KeyEquiv,
-        "Version" => lex::Token::KeyVersion,
-        "Place" => lex::Token::KeyPlace,
 
         "#" => lex::Token::NumSign,
         "," => lex::Token::Comma,
