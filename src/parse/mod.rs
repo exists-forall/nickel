@@ -239,6 +239,14 @@ mod test {
             })
         );
 
+        assert_eq!(
+            type_("equiv a b"),
+            Ok(syntax::Type::Equiv {
+                orig: Box::new(ty_var("a")),
+                dest: Box::new(ty_var("b")),
+            })
+        );
+
         // Full example:
 
         assert_eq!(
