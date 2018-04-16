@@ -32,10 +32,18 @@ AtomicType: syntax::Type = {
 
 AppType: syntax::Type = {
     <AtomicType>,
+
     <constructor: AppType> <param: AtomicType> => {
         syntax::Type::App {
             constructor: Box::new(constructor),
             param: Box::new(param),
+        }
+    },
+
+    "equiv" <orig: AtomicType> <dest: AtomicType> => {
+        syntax::Type::Equiv {
+            orig: Box::new(orig),
+            dest: Box::new(dest),
         }
     },
 };
@@ -215,6 +223,7 @@ extern {
 
         "forall" => lex::Token::KeyForall,
         "exists" => lex::Token::KeyExists,
+        "equiv" => lex::Token::KeyEquiv,
         "Version" => lex::Token::KeyVersion,
         "Place" => lex::Token::KeyPlace,
 

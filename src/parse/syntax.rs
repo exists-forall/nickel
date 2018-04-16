@@ -27,6 +27,7 @@ pub enum Type {
         constructor: Box<Type>,
         param: Box<Type>,
     },
+    Equiv { orig: Box<Type>, dest: Box<Type> },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

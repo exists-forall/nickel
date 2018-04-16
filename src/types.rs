@@ -32,6 +32,10 @@ enum TypeDataInner<TAnnot, Name> {
         constructor: TypeData<TAnnot, Name>,
         param: TypeData<TAnnot, Name>,
     },
+    Equiv {
+        orig: TypeData<TAnnot, Name>,
+        dest: TypeData<TAnnot, Name>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -61,6 +65,10 @@ pub enum TypeContent<TAnnot, Name> {
     App {
         constructor: AnnotType<TAnnot, Name>,
         param: AnnotType<TAnnot, Name>,
+    },
+    Equiv {
+        orig: AnnotType<TAnnot, Name>,
+        dest: AnnotType<TAnnot, Name>,
     },
 }
 
@@ -170,6 +178,21 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                     },
                 }
             }
+
+            TypeContent::Equiv { orig, dest } => {
+                assert_eq!(orig.free, dest.free, "Free variables do not match");
+                AnnotType {
+                    free: orig.free,
+                    data: TypeData {
+                        annot,
+                        max_index: orig.data.max_index.max(dest.data.max_index),
+                        inner: Rc::new(TypeDataInner::Equiv {
+                            orig: orig.data,
+                            dest: dest.data,
+                        }),
+                    },
+                }
+            }
         }
     }
 
@@ -243,6 +266,19 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                     },
                 }
             }
+
+            &TypeDataInner::Equiv { ref orig, ref dest } => {
+                TypeContent::Equiv {
+                    orig: AnnotType {
+                        free: self.free,
+                        data: orig.clone(),
+                    },
+                    dest: AnnotType {
+                        free: self.free,
+                        data: dest.clone(),
+                    },
+                }
+            }
         }
     }
 
@@ -306,6 +342,13 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 TypeContent::App {
                     constructor: constructor.increment_above(index, inc_by),
                     param: param.increment_above(index, inc_by),
+                }
+            }
+
+            TypeContent::Equiv { orig, dest } => {
+                TypeContent::Equiv {
+                    orig: orig.increment_above(index, inc_by),
+                    dest: dest.increment_above(index, inc_by),
                 }
             }
         };
@@ -418,6 +461,16 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                     TypeContent::App {
                         constructor: constructor.subst_inner(start_index, replacements),
                         param: param.subst_inner(start_index, replacements),
+                    },
+                )
+            }
+
+            TypeContent::Equiv { orig, dest } => {
+                AnnotType::from_content_annot(
+                    self.annot(),
+                    TypeContent::Equiv {
+                        orig: orig.subst_inner(start_index, replacements),
+                        dest: dest.subst_inner(start_index, replacements),
                     },
                 )
             }

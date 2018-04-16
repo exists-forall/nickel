@@ -120,5 +120,21 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 _ => Box::new("(".join(block(content_pretty)).join(")")),
             }
         }
+
+        TypeContent::Equiv { orig, dest } => {
+            let orig_pretty = to_pretty(names, Place::AppParam, orig);
+            let dest_pretty = to_pretty(names, Place::AppParam, dest);
+
+            let content_pretty = "equiv".join(Indent(
+                Sep(1).join(orig_pretty).join(Sep(1)).join(dest_pretty),
+            ));
+
+            match place {
+                Place::Root | Place::QuantifierBody | Place::FuncArg | Place::FuncRet |
+                Place::PairLeft | Place::PairRight => Box::new(Group::new(content_pretty)),
+
+                _ => Box::new("(".join(block(content_pretty)).join(")")),
+            }
+        }
     }
 }

@@ -87,6 +87,13 @@ pub fn convert_type(
                 param: convert_type(type_names, *param)?,
             }))
         }
+
+        syntax::Type::Equiv { orig, dest } => {
+            Ok(types::Type::from_content(types::TypeContent::Equiv {
+                orig: convert_type(type_names, *orig)?,
+                dest: convert_type(type_names, *dest)?,
+            }))
+        }
     }
 }
 
