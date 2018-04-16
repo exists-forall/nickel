@@ -48,12 +48,16 @@ Quantifier: types::Quantifier = {
 QuantifiedType: syntax::Type = {
     <AppType>,
 
-    <quantifier: Quantifier> "{" <param: TypeParam> "}" <body: QuantifiedType> => {
-        syntax::Type::Quantified {
-            quantifier,
-            param,
-            body: Box::new(body),
+    <quantifier: Quantifier> <params: ("{" <TypeParam> "}")+> <body: QuantifiedType> => {
+        let mut result = body;
+        for param in params.into_iter().rev() {
+            result = syntax::Type::Quantified {
+                quantifier,
+                param,
+                body: Box::new(result),
+            };
         }
+        result
     },
 
     <arg: AtomicType> "->" <ret: QuantifiedType> => {

@@ -195,6 +195,29 @@ mod test {
         );
 
         assert_eq!(
+            type_("forall {T} {U} {V} (T, U, V)"),
+            Ok(syntax::Type::Quantified {
+                quantifier: types::Quantifier::ForAll,
+                param: syntax::TypeParam { ident: mk_ident("T") },
+                body: Box::new(syntax::Type::Quantified {
+                    quantifier: types::Quantifier::ForAll,
+                    param: syntax::TypeParam { ident: mk_ident("U") },
+                    body: Box::new(syntax::Type::Quantified {
+                        quantifier: types::Quantifier::ForAll,
+                        param: syntax::TypeParam { ident: mk_ident("V") },
+                        body: Box::new(syntax::Type::Pair {
+                            left: Box::new(ty_var("T")),
+                            right: Box::new(syntax::Type::Pair {
+                                left: Box::new(ty_var("U")),
+                                right: Box::new(ty_var("V")),
+                            }),
+                        }),
+                    }),
+                }),
+            })
+        );
+
+        assert_eq!(
             type_("foo, bar, baz"),
             Ok(syntax::Type::Pair {
                 left: Box::new(ty_var("foo")),
