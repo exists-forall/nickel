@@ -28,7 +28,6 @@ enum TypeDataInner<TAnnot, Name> {
         left: TypeData<TAnnot, Name>,
         right: TypeData<TAnnot, Name>,
     },
-    /// Represents both partial and (segments of) total type applications
     App {
         constructor: TypeData<TAnnot, Name>,
         param: TypeData<TAnnot, Name>,
