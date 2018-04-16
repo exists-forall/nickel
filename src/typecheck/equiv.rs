@@ -59,6 +59,15 @@ pub fn equiv<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
              param: param2,
          }) => equiv(constructor1, constructor2) && equiv(param1, param2),
 
+        (TypeContent::Equiv {
+             orig: orig1,
+             dest: dest1,
+         },
+         TypeContent::Equiv {
+             orig: orig2,
+             dest: dest2,
+         }) => equiv(orig1, orig2) && equiv(dest1, dest2),
+
         (_, _) => false,
     }
 }
@@ -177,5 +186,23 @@ mod test {
         assert!(!equiv(app(var(3, 0), var(3, 2)), app(var(3, 1), var(3, 2))));
 
         assert!(!equiv(app(var(3, 0), var(3, 1)), app(var(3, 0), var(3, 2))));
+    }
+
+    #[test]
+    fn equiv_equiv() {
+        assert!(equiv(
+            equiv_ty(var(2, 0), var(2, 1)),
+            equiv_ty(var(2, 0), var(2, 1)),
+        ));
+
+        assert!(!equiv(
+            equiv_ty(var(3, 0), var(3, 2)),
+            equiv_ty(var(3, 1), var(3, 2)),
+        ));
+
+        assert!(!equiv(
+            equiv_ty(var(3, 0), var(3, 1)),
+            equiv_ty(var(3, 0), var(3, 2)),
+        ));
     }
 }
