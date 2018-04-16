@@ -123,7 +123,11 @@ InstExpr: syntax::Expr = {
             receiver: Box::new(receiver),
             type_params,
         }
-    }
+    },
+
+    "refl_equiv" "{" <ty: Type> "}" => {
+        syntax::Expr::ReflEquiv { ty }
+    },
 };
 
 CallableExpr: syntax::Expr = {
@@ -233,6 +237,7 @@ extern {
         "of" => lex::Token::KeyOf,
         "cast" => lex::Token::KeyCast,
         "by" => lex::Token::KeyBy,
+        "refl_equiv" => lex::Token::KeyReflEquiv,
 
         "forall" => lex::Token::KeyForall,
         "exists" => lex::Token::KeyExists,

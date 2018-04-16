@@ -281,5 +281,12 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
                 body: convert_expr(ctx, *body)?,
             }))
         }
+
+        syntax::Expr::ReflEquiv { ty } => {
+            Ok(expr::Expr::from_content(expr::ExprContent::ReflEquiv {
+                free_vars: ctx.var_names.index_count(),
+                ty: convert_type(&mut ctx.type_names, ty)?,
+            }))
+        }
     }
 }

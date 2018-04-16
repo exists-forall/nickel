@@ -71,4 +71,5 @@ pub enum Expr {
         equivalence: Box<Expr>,
         body: Box<Expr>,
     },
+    ReflEquiv { ty: Type },
 }
