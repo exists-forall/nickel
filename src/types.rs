@@ -537,6 +537,12 @@ mod test {
     }
 
     #[test]
+    #[should_panic]
+    fn invalid_equiv() {
+        equiv_ty(var(1, 0), var(2, 0));
+    }
+
+    #[test]
     fn free_unit() {
         assert_eq!(unit(0).free(), 0);
         assert_eq!(unit(5).free(), 5);
@@ -585,6 +591,12 @@ mod test {
     fn free_app() {
         assert_eq!(app(var(2, 0), var(2, 1)).free(), 2);
         assert_eq!(app(var(4, 3), var(4, 0)).free(), 4);
+    }
+
+    #[test]
+    fn free_equiv() {
+        assert_eq!(equiv_ty(var(2, 0), var(2, 1)).free(), 2);
+        assert_eq!(equiv_ty(var(4, 3), var(4, 0)).free(), 4);
     }
 
     #[test]
@@ -659,6 +671,14 @@ mod test {
         assert_eq!(
             app(var(2, 0), var(2, 1)).accomodate_free(4),
             app(var(4, 0), var(4, 1))
+        );
+    }
+
+    #[test]
+    fn accomodate_free_equiv() {
+        assert_eq!(
+            equiv_ty(var(2, 0), var(2, 1)).accomodate_free(4),
+            equiv_ty(var(4, 0), var(4, 1))
         );
     }
 

@@ -81,3 +81,7 @@ pub fn pair(left: Type<Rc<String>>, right: Type<Rc<String>>) -> Type<Rc<String>>
 pub fn app(constructor: Type<Rc<String>>, param: Type<Rc<String>>) -> Type<Rc<String>> {
     Type::from_content(TypeContent::App { constructor, param })
 }
+
+pub fn equiv_ty(orig: Type<Rc<String>>, dest: Type<Rc<String>>) -> Type<Rc<String>> {
+    Type::from_content(TypeContent::Equiv { orig, dest })
+}
