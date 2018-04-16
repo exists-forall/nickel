@@ -167,21 +167,13 @@ BlockExpr: syntax::Expr = {
     },
 
     "make_exists"
-    "{" <params: (<Ident> "=" <Type> ";")*> <last_param: (<Ident> "=" <Type>)?> "}"
+    <params: ("{" <Ident> "=" <Type> "}")+>
     <type_body: Type>
-    "of" <body: BlockExpr> =>? {
-        let mut all_params = params;
-        if let Some(last_param) = last_param {
-            all_params.push(last_param);
-        }
-        if all_params.len() > 0 {
-            Ok(syntax::Expr::MakeExists {
-                params: all_params,
-                type_body,
-                body: Box::new(body),
-            })
-        } else {
-            Err(ParseError::User { error: lex::Error::Empty })
+    "of" <body: BlockExpr> => {
+        syntax::Expr::MakeExists {
+            params: params,
+            type_body,
+            body: Box::new(body),
         }
     },
 };

@@ -387,7 +387,7 @@ mod test {
         );
 
         assert_eq!(
-            expr("make_exists {T = Foo; U = Bar;} T -> U of move f"),
+            expr("make_exists {T = Foo} {U = Bar} T -> U of move f"),
             Ok(syntax::Expr::MakeExists {
                 params: vec![
                     (mk_ident("T"), ty_var("Foo")),
@@ -565,7 +565,7 @@ mod test {
             conv(
                 &["foo", "bar"],
                 &["Foo", "Bar"],
-                "make_exists {T = Foo; U = Bar} (T, U) of (move foo, move bar)",
+                "make_exists {T = Foo} {U = Bar} (T, U) of (move foo, move bar)",
             ),
             Ok(ex::make_exists_named(
                 &[("T", ty::var(2, 0)), ("U", ty::var(2, 1))],

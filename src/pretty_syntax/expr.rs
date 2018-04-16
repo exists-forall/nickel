@@ -294,22 +294,21 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
 
             type_names.push_scope();
 
-            let params_pretty = Group::new(
-                "{"
-                    .join(block(
-                        delimited(
-                            &";".join(Sep(1)),
-                            params.iter().zip(param_types_pretty).map(
-                                |(param, ty_pretty)| {
-                                    // This is a mutating operation
-                                    // Names are added here!
-                                    let name_pretty = type_names.add_name(param.0.clone().into());
-                                    Group::new(name_pretty.join(" =").join(Sep(1)).join(ty_pretty))
-                                },
-                            ),
-                        ).join(Conditional::OnlyBroken(";")),
-                    )).join("}"),
-            );
+            let params_pretty = Group::new(delimited(
+                &Sep(1),
+                params.iter().zip(param_types_pretty).map(
+                    |(param, ty_pretty)| {
+                        // This is a mutating operation
+                        // Names are added here!
+                        let name_pretty = type_names.add_name(param.0.clone().into());
+                        Group::new(
+                            "{"
+                                .join(block(name_pretty.join(" =").join(Sep(1)).join(ty_pretty)))
+                                .join("}"),
+                        )
+                    },
+                ),
+            ));
 
             let type_body_pretty = types::to_pretty(type_names, types::Place::Root, type_body);
 
