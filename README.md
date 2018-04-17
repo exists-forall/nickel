@@ -39,3 +39,5 @@ construction. Eventually, the Nickel toolchain will include:
 
 Questions and contributions are welcome!  Please contact [William
 Brandon](https://github.com/selectricsimian/) to learn more.
+
+[![Gitter chat](https://img.shields.io/badge/chat-on%20gitter-blue.svg)](https://gitter.im/nickel-lang "Gitter chat")
