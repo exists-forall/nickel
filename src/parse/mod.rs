@@ -178,7 +178,39 @@ mod test {
             type_("foo -> bar"),
             Ok(syntax::Type::Func {
                 arg: Box::new(ty_var("foo")),
+                arg_phase: types::Phase::Dynamic,
                 ret: Box::new(ty_var("bar")),
+                ret_phase: types::Phase::Dynamic,
+            })
+        );
+
+        assert_eq!(
+            type_("(static foo) -> bar"),
+            Ok(syntax::Type::Func {
+                arg: Box::new(ty_var("foo")),
+                arg_phase: types::Phase::Static,
+                ret: Box::new(ty_var("bar")),
+                ret_phase: types::Phase::Dynamic,
+            })
+        );
+
+        assert_eq!(
+            type_("foo -> static bar"),
+            Ok(syntax::Type::Func {
+                arg: Box::new(ty_var("foo")),
+                arg_phase: types::Phase::Dynamic,
+                ret: Box::new(ty_var("bar")),
+                ret_phase: types::Phase::Static,
+            })
+        );
+
+        assert_eq!(
+            type_("(static foo) -> static bar"),
+            Ok(syntax::Type::Func {
+                arg: Box::new(ty_var("foo")),
+                arg_phase: types::Phase::Static,
+                ret: Box::new(ty_var("bar")),
+                ret_phase: types::Phase::Static,
             })
         );
 
@@ -189,7 +221,9 @@ mod test {
                 param: syntax::TypeParam { ident: mk_ident("t") },
                 body: Box::new(syntax::Type::Func {
                     arg: Box::new(ty_var("t")),
+                    arg_phase: types::Phase::Dynamic,
                     ret: Box::new(ty_var("foo")),
+                    ret_phase: types::Phase::Dynamic,
                 }),
             })
         );
@@ -426,7 +460,9 @@ mod test {
                 ],
                 type_body: syntax::Type::Func {
                     arg: Box::new(ty_var("T")),
+                    arg_phase: types::Phase::Dynamic,
                     ret: Box::new(ty_var("U")),
+                    ret_phase: types::Phase::Dynamic,
                 },
                 body: Box::new(ex_move_var("f")),
             })

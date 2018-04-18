@@ -1,4 +1,4 @@
-use types::Quantifier;
+use types::{Quantifier, Phase};
 use expr::VarUsage;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -21,7 +21,12 @@ pub enum Type {
         param: TypeParam,
         body: Box<Type>,
     },
-    Func { arg: Box<Type>, ret: Box<Type> },
+    Func {
+        arg: Box<Type>,
+        arg_phase: Phase,
+        ret: Box<Type>,
+        ret_phase: Phase,
+    },
     Pair { left: Box<Type>, right: Box<Type> },
     App {
         constructor: Box<Type>,

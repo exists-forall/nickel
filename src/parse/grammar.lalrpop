@@ -53,6 +53,16 @@ Quantifier: types::Quantifier = {
     "forall" => types::Quantifier::ForAll,
 };
 
+PhasedArg: (types::Phase, syntax::Type) = {
+    <arg: AtomicType> => (types::Phase::Dynamic, arg),
+    "(" "static" <arg: Type> ")" => (types::Phase::Static, arg),
+};
+
+PhasedRet: (types::Phase, syntax::Type) = {
+    <ret: AtomicType> => (types::Phase::Dynamic, ret),
+    "static" <ret: AtomicType> => (types::Phase::Static, ret),
+};
+
 QuantifiedType: syntax::Type = {
     <AppType>,
 
@@ -68,10 +78,14 @@ QuantifiedType: syntax::Type = {
         result
     },
 
-    <arg: AtomicType> "->" <ret: QuantifiedType> => {
+    <phased_arg: PhasedArg> "->" <phased_ret: PhasedRet> => {
+        let (arg_phase, arg) = phased_arg;
+        let (ret_phase, ret) = phased_ret;
         syntax::Type::Func {
             arg: Box::new(arg),
+            arg_phase,
             ret: Box::new(ret),
+            ret_phase,
         }
     },
 };
@@ -242,6 +256,7 @@ extern {
         "forall" => lex::Token::KeyForall,
         "exists" => lex::Token::KeyExists,
         "equiv" => lex::Token::KeyEquiv,
+        "static" => lex::Token::KeyStatic,
 
         "#" => lex::Token::NumSign,
         "," => lex::Token::Comma,
