@@ -79,6 +79,83 @@ pub fn equiv<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
     }
 }
 
+pub fn subphase(child: Phase, parent: Phase) -> bool {
+    match (child, parent) {
+        (Phase::Dynamic, Phase::Dynamic) => true,
+        (Phase::Static, Phase::Static) => true,
+        (Phase::Static, Phase::Dynamic) => true,
+        (Phase::Dynamic, Phase::Static) => false,
+    }
+}
+
+pub fn subtype<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
+    child: AnnotType<TAnnot1, Name1>,
+    parent: AnnotType<TAnnot2, Name2>,
+) -> bool {
+    assert_eq!(
+        child.free(),
+        parent.free(),
+        "Cannot compare types with a different number of free variables",
+    );
+
+    match (child.to_content(), parent.to_content()) {
+        (TypeContent::Unit { free: _ }, TypeContent::Unit { free: _ }) => true,
+
+        (TypeContent::Var {
+             index: child_index,
+             free: _,
+         },
+         TypeContent::Var {
+             index: parent_index,
+             free: _,
+         }) => child_index == parent_index,
+
+        (TypeContent::Quantified {
+             quantifier: child_quantifier,
+             param: _,
+             body: child_body,
+         },
+         TypeContent::Quantified {
+             quantifier: parent_quantifier,
+             param: _,
+             body: parent_body,
+         }) => child_quantifier == parent_quantifier && subtype(child_body, parent_body),
+
+        (TypeContent::Func {
+             arg: child_arg,
+             arg_phase: child_arg_phase,
+             ret: child_ret,
+             ret_phase: child_ret_phase,
+         },
+         TypeContent::Func {
+             arg: parent_arg,
+             arg_phase: parent_arg_phase,
+             ret: parent_ret,
+             ret_phase: parent_ret_phase,
+         }) => {
+            subphase(parent_arg_phase, child_arg_phase) && // arg phase is contravariant
+             subphase(child_ret_phase, parent_ret_phase) && // ret phase is covariant
+             subtype(parent_arg, child_arg) && // arg type is contravariant
+             subtype(child_ret, parent_ret) // ret type is covariant
+        }
+
+        (TypeContent::Pair {
+             left: child_left,
+             right: child_right,
+         },
+         TypeContent::Pair {
+             left: parent_left,
+             right: parent_right,
+         }) => subtype(child_left, parent_left) && subtype(child_right, parent_right),
+
+        (TypeContent::App { .. }, TypeContent::App { .. }) => equiv(child, parent),
+
+        (TypeContent::Equiv { .. }, TypeContent::Equiv { .. }) => equiv(child, parent),
+
+        (_, _) => false,
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
