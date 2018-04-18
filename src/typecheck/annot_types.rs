@@ -1,7 +1,7 @@
 use types::*;
 use expr::*;
-use super::context::{Context, Usage};
-use super::equiv::equiv;
+use super::context::{Context, Annot, Usage};
+use super::equiv::{subphase, subtype};
 
 #[derive(Clone, Debug)]
 pub enum Error<Name> {
@@ -88,7 +88,7 @@ fn check_moved_in_scope<Name: Clone>(ctx: &Context<Name>) -> Result<(), Error<Na
 pub fn annot_types<Name: Clone>(
     ctx: &mut Context<Name>,
     ex: Expr<Name>,
-) -> Result<AnnotExpr<(), Type<Name>, Name>, Error<Name>> {
+) -> Result<AnnotExpr<(), Annot<Name>, Name>, Error<Name>> {
     assert_eq!(
         ex.free_vars(),
         ctx.var_index_count(),
@@ -109,7 +109,10 @@ pub fn annot_types<Name: Clone>(
             free_types,
         } => {
             Ok(AnnotExpr::from_content_annot(
-                Type::from_content(TypeContent::Unit { free: free_types }),
+                Annot {
+                    phase: Phase::Static,
+                    ty: Type::from_content(TypeContent::Unit { free: free_types }),
+                },
                 ExprContent::Unit {
                     free_vars,
                     free_types,
@@ -142,7 +145,10 @@ pub fn annot_types<Name: Clone>(
             }
 
             Ok(AnnotExpr::from_content_annot(
-                ctx.var_type(index).accomodate_free(ctx.type_index_count()),
+                Annot {
+                    phase: ctx.var_phase(index),
+                    ty: ctx.var_type(index).accomodate_free(ctx.type_index_count()),
+                },
                 ExprContent::Var {
                     usage,
                     free_vars,
@@ -160,7 +166,7 @@ pub fn annot_types<Name: Clone>(
             let body_annot = annot_types(ctx, body)?;
             ctx.pop_scope();
 
-            let mut result_type = body_annot.annot();
+            let mut result_type = body_annot.annot().ty;
             for type_param in type_params.iter().rev() {
                 result_type = Type::from_content(TypeContent::Quantified {
                     quantifier: Quantifier::ForAll,
@@ -170,7 +176,10 @@ pub fn annot_types<Name: Clone>(
             }
 
             Ok(AnnotExpr::from_content_annot(
-                result_type,
+                Annot {
+                    phase: body_annot.annot().phase,
+                    ty: result_type,
+                },
                 ExprContent::ForAll {
                     type_params,
                     body: body_annot,
@@ -185,20 +194,34 @@ pub fn annot_types<Name: Clone>(
             body,
         } => {
             ctx.push_scope();
-            ctx.add_var_unmoved(arg_name.clone(), arg_type.clone());
+            ctx.add_var_unmoved(
+                arg_name.clone(),
+                Annot {
+                    phase: arg_phase,
+                    ty: arg_type.clone(),
+                },
+            );
             let body_annot = annot_types(ctx, body)?;
             check_moved_in_scope(ctx)?;
             ctx.pop_scope();
 
-            // unconditional dynamic phase is temporary -- should support both static and dynamic
-            // return values
+            let Annot {
+                phase: ret_phase,
+                ty: ret_ty,
+            } = body_annot.annot();
+
             Ok(AnnotExpr::from_content_annot(
-                Type::from_content(TypeContent::Func {
-                    arg: arg_type.clone(),
-                    arg_phase,
-                    ret: body_annot.annot(),
-                    ret_phase: Phase::Dynamic,
-                }),
+                Annot {
+                    // All function expressions yield constant function pointers, and are therefore
+                    // statically known
+                    phase: Phase::Static,
+                    ty: Type::from_content(TypeContent::Func {
+                        arg: arg_type.clone(),
+                        arg_phase,
+                        ret: ret_ty,
+                        ret_phase,
+                    }),
+                },
                 ExprContent::Func {
                     arg_name,
                     arg_type,
@@ -214,7 +237,7 @@ pub fn annot_types<Name: Clone>(
         } => {
             let receiver_annot = annot_types(ctx, receiver)?;
 
-            let mut nested_receiver_ty = receiver_annot.annot();
+            let mut nested_receiver_ty = receiver_annot.annot().ty;
             for _ in 0..type_params.len() {
                 if let TypeContent::Quantified {
                     quantifier: Quantifier::ForAll,
@@ -235,7 +258,10 @@ pub fn annot_types<Name: Clone>(
             let receiver_ty_instantiated = nested_receiver_ty.subst(&type_params);
 
             Ok(AnnotExpr::from_content_annot(
-                receiver_ty_instantiated,
+                Annot {
+                    phase: receiver_annot.annot().phase,
+                    ty: receiver_ty_instantiated,
+                },
                 ExprContent::Inst {
                     receiver: receiver_annot,
                     type_params,
@@ -251,30 +277,39 @@ pub fn annot_types<Name: Clone>(
                 arg,
                 arg_phase,
                 ret,
-                ret_phase: _,
-            } = callee_annot.annot().to_content()
+                ret_phase,
+            } = callee_annot.annot().ty.to_content()
             {
-                // temporary check before proper phase checking is added
-                match arg_phase {
-                    Phase::Dynamic => {}
-                    Phase::Static => {
-                        return Err(Error::UnexpectedDynamic {
-                            context: ctx.clone(),
-                            in_expr: ex,
-                        })
-                    }
+                if !subphase(arg_annot.annot().phase, arg_phase) {
+                    return Err(Error::UnexpectedDynamic {
+                        context: ctx.clone(),
+                        in_expr: ex,
+                    });
                 }
 
-                if !equiv(arg.clone(), arg_annot.annot()) {
+                if !subtype(arg_annot.annot().ty, arg.clone()) {
                     return Err(Error::Mismatch {
                         context: ctx.clone(),
                         in_expr: ex,
                         expected: arg,
-                        actual: arg_annot.annot(),
+                        actual: arg_annot.annot().ty,
                     });
                 }
+
+                let result_phase = match (
+                    callee_annot.annot().phase,
+                    ret_phase,
+                    arg_annot.annot().phase,
+                ) {
+                    (Phase::Static, Phase::Static, Phase::Static) => Phase::Static,
+                    _ => Phase::Dynamic,
+                };
+
                 Ok(AnnotExpr::from_content_annot(
-                    ret,
+                    Annot {
+                        phase: result_phase,
+                        ty: ret,
+                    },
                     ExprContent::App {
                         callee: callee_annot,
                         arg: arg_annot,
@@ -284,7 +319,7 @@ pub fn annot_types<Name: Clone>(
                 return Err(Error::ExpectedFunc {
                     context: ctx.clone(),
                     in_expr: ex,
-                    actual: callee_annot.annot(),
+                    actual: callee_annot.annot().ty,
                 });
             }
         }
@@ -292,11 +327,20 @@ pub fn annot_types<Name: Clone>(
         ExprContent::Pair { left, right } => {
             let left_annot = annot_types(ctx, left)?;
             let right_annot = annot_types(ctx, right)?;
+
+            let result_phase = match (left_annot.annot().phase, right_annot.annot().phase) {
+                (Phase::Static, Phase::Static) => Phase::Static,
+                _ => Phase::Dynamic,
+            };
+
             Ok(AnnotExpr::from_content_annot(
-                Type::from_content(TypeContent::Pair {
-                    left: left_annot.annot(),
-                    right: right_annot.annot(),
-                }),
+                Annot {
+                    phase: result_phase,
+                    ty: Type::from_content(TypeContent::Pair {
+                        left: left_annot.annot().ty,
+                        right: right_annot.annot().ty,
+                    }),
+                },
                 ExprContent::Pair {
                     left: left_annot,
                     right: right_annot,
@@ -310,10 +354,11 @@ pub fn annot_types<Name: Clone>(
             ctx.push_scope();
 
             debug_assert!(names.len() > 0);
-            let mut nested_pairs = val_annot.annot();
+            let phase = val_annot.annot().phase;
+            let mut nested_pairs = val_annot.annot().ty;
             for name in &names[0..names.len() - 1] {
                 if let TypeContent::Pair { left, right } = nested_pairs.to_content() {
-                    ctx.add_var_unmoved(name.clone(), left);
+                    ctx.add_var_unmoved(name.clone(), Annot { phase, ty: left });
                     nested_pairs = right;
                 } else {
                     let mut outer_ctx = ctx.clone();
@@ -326,7 +371,13 @@ pub fn annot_types<Name: Clone>(
                 }
             }
             let deepest_right = nested_pairs;
-            ctx.add_var_unmoved(names.last().unwrap().clone(), deepest_right);
+            ctx.add_var_unmoved(
+                names.last().unwrap().clone(),
+                Annot {
+                    phase,
+                    ty: deepest_right,
+                },
+            );
 
             let body_annot = annot_types(ctx, body)?;
 
@@ -353,7 +404,7 @@ pub fn annot_types<Name: Clone>(
 
             ctx.push_scope();
 
-            let mut nested = val_annot.annot();
+            let mut nested = val_annot.annot().ty;
             for type_name in type_names.iter() {
                 if let TypeContent::Quantified {
                     quantifier: Quantifier::Exists,
@@ -374,7 +425,13 @@ pub fn annot_types<Name: Clone>(
                 }
             }
             let deepest_body = nested;
-            ctx.add_var_unmoved(val_name.clone(), deepest_body);
+            ctx.add_var_unmoved(
+                val_name.clone(),
+                Annot {
+                    phase: val_annot.annot().phase,
+                    ty: deepest_body,
+                },
+            );
 
             let body_annot = annot_types(ctx, body)?;
 
@@ -405,11 +462,11 @@ pub fn annot_types<Name: Clone>(
                 .collect::<Vec<_>>();
             let instantiated_type_body = type_body.subst(&substitutions);
 
-            if !equiv(instantiated_type_body.clone(), body_annot.annot()) {
+            if !subtype(body_annot.annot().ty, instantiated_type_body.clone()) {
                 return Err(Error::Mismatch {
                     context: ctx.clone(),
                     in_expr: ex,
-                    actual: body_annot.annot(),
+                    actual: body_annot.annot().ty,
                     expected: instantiated_type_body.clone(),
                 });
             }
@@ -424,7 +481,10 @@ pub fn annot_types<Name: Clone>(
             }
 
             Ok(AnnotExpr::from_content_annot(
-                result_type,
+                Annot {
+                    phase: body_annot.annot().phase,
+                    ty: result_type,
+                },
                 ExprContent::MakeExists {
                     params,
                     type_body,
@@ -442,21 +502,30 @@ pub fn annot_types<Name: Clone>(
             let equivalence_annot = annot_types(ctx, equivalence)?;
             let body_annot = annot_types(ctx, body)?;
 
-            if let TypeContent::Equiv { orig, dest } = equivalence_annot.annot().to_content() {
+            if let TypeContent::Equiv { orig, dest } = equivalence_annot.annot().ty.to_content() {
                 let type_body_orig = type_body.subst(&[orig]);
                 let type_body_dest = type_body.subst(&[dest]);
 
-                if !equiv(type_body_orig.clone(), body_annot.annot()) {
+                if !subtype(body_annot.annot().ty, type_body_orig.clone()) {
                     return Err(Error::Mismatch {
                         context: ctx.clone(),
                         in_expr: ex,
                         expected: type_body_orig,
-                        actual: body_annot.annot(),
+                        actual: body_annot.annot().ty,
                     });
                 }
 
                 Ok(AnnotExpr::from_content_annot(
-                    type_body_dest,
+                    Annot {
+                        // NOTE: this will produce a static expression even if the equivalence token
+                        // is not static.  This seems valid, but there is currently nothing else
+                        // that works this way.  Should we either artificially restrict cast
+                        // expressions to only produce static expressions when their cast tokens or
+                        // static, or should we create a more general system for "erasing" the
+                        // dynamicness of computationally-irrelevant tokens?
+                        phase: body_annot.annot().phase,
+                        ty: type_body_dest,
+                    },
                     ExprContent::Cast {
                         param,
                         type_body,
@@ -468,17 +537,20 @@ pub fn annot_types<Name: Clone>(
                 return Err(Error::ExpectedEquivalence {
                     context: ctx.clone(),
                     in_expr: ex,
-                    actual: equivalence_annot.annot(),
+                    actual: equivalence_annot.annot().ty,
                 });
             }
         }
 
         ExprContent::ReflEquiv { free_vars, ty } => {
             Ok(AnnotExpr::from_content_annot(
-                Type::from_content(TypeContent::Equiv {
-                    orig: ty.clone(),
-                    dest: ty.clone(),
-                }),
+                Annot {
+                    phase: Phase::Static,
+                    ty: Type::from_content(TypeContent::Equiv {
+                        orig: ty.clone(),
+                        dest: ty.clone(),
+                    }),
+                },
                 ExprContent::ReflEquiv { free_vars, ty },
             ))
         }
