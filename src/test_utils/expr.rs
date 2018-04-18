@@ -48,6 +48,7 @@ pub fn func(arg_type: Type<Rc<String>>, body: Expr<Rc<String>>) -> Expr<Rc<Strin
     Expr::from_content(ExprContent::Func {
         arg_name: Rc::new("".to_owned()),
         arg_type,
+        arg_phase: Phase::Dynamic,
         body,
     })
 }
@@ -68,6 +69,7 @@ pub fn func_named(
     Expr::from_content(ExprContent::Func {
         arg_name: Rc::new(arg_name.to_owned()),
         arg_type,
+        arg_phase: Phase::Dynamic,
         body,
     })
 }

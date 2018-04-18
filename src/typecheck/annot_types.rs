@@ -181,6 +181,7 @@ pub fn annot_types<Name: Clone>(
         ExprContent::Func {
             arg_name,
             arg_type,
+            arg_phase,
             body,
         } => {
             ctx.push_scope();
@@ -189,18 +190,19 @@ pub fn annot_types<Name: Clone>(
             check_moved_in_scope(ctx)?;
             ctx.pop_scope();
 
-            // unconditional dynamic phases are temporary -- should support both static and dynamic
-            // arguments and return values
+            // unconditional dynamic phase is temporary -- should support both static and dynamic
+            // return values
             Ok(AnnotExpr::from_content_annot(
                 Type::from_content(TypeContent::Func {
                     arg: arg_type.clone(),
-                    arg_phase: Phase::Dynamic,
+                    arg_phase,
                     ret: body_annot.annot(),
                     ret_phase: Phase::Dynamic,
                 }),
                 ExprContent::Func {
                     arg_name,
                     arg_type,
+                    arg_phase,
                     body: body_annot,
                 },
             ))

@@ -22,6 +22,7 @@ enum ExprDataInner<TAnnot, EAnnot, Name> {
     Func {
         arg_name: Name,
         arg_type: AnnotType<TAnnot, Name>,
+        arg_phase: Phase,
         body: ExprData<TAnnot, EAnnot, Name>,
     },
 
@@ -94,6 +95,7 @@ pub enum ExprContent<TAnnot, EAnnot, Name> {
     Func {
         arg_name: Name,
         arg_type: AnnotType<TAnnot, Name>,
+        arg_phase: Phase,
         body: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 
@@ -221,6 +223,7 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
             ExprContent::Func {
                 arg_name,
                 arg_type,
+                arg_phase,
                 body,
             } => {
                 assert_eq!(
@@ -242,6 +245,7 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                         inner: Rc::new(ExprDataInner::Func {
                             arg_name,
                             arg_type,
+                            arg_phase,
                             body: body.data,
                         }),
                     },
@@ -510,11 +514,13 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
             &ExprDataInner::Func {
                 ref arg_name,
                 ref arg_type,
+                arg_phase,
                 ref body,
             } => {
                 ExprContent::Func {
                     arg_name: arg_name.clone(),
                     arg_type: arg_type.clone(),
+                    arg_phase,
                     body: AnnotExpr {
                         free_types: self.free_types,
                         free_vars: self.free_vars + 1,

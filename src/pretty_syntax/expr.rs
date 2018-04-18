@@ -4,6 +4,7 @@ use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, delimited, block, I
 use super::super::expr::*;
 use pretty_syntax::types;
 use pretty_syntax::names::Names;
+use super::super::types::Phase;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Place {
@@ -88,6 +89,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
         ExprContent::Func {
             arg_name,
             arg_type,
+            arg_phase,
             body,
         } => {
             var_names.push_scope();
@@ -95,9 +97,14 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             let arg_name_pretty = var_names.add_name(arg_name.clone().into());
             let arg_type_pretty = types::to_pretty(type_names, types::Place::Root, arg_type);
 
+            let phased_arg_pretty = match arg_phase {
+                Phase::Dynamic => Group::new(None.join(arg_name_pretty)),
+                Phase::Static => Group::new(Some("static".join(Sep(1))).join(arg_name_pretty)),
+            };
+
             let arg_pretty = Group::new(
                 "("
-                    .join(block(arg_name_pretty.join(" :").join(Sep(1)).join(
+                    .join(block(phased_arg_pretty.join(" :").join(Sep(1)).join(
                         arg_type_pretty,
                     ))).join(")"),
             );

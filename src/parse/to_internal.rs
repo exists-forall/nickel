@@ -146,9 +146,12 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
 
             ctx.var_names.add_name(arg_name.clone())?;
 
+            // unconditional dynamic phase is temporary -- should support both static and dynamic
+            // arguments
             let result = expr::Expr::from_content(expr::ExprContent::Func {
                 arg_name: Rc::new(arg_name.name),
                 arg_type: convert_type(&mut ctx.type_names, arg_type)?,
+                arg_phase: types::Phase::Dynamic,
                 body: convert_expr(ctx, *body)?,
             });
 
