@@ -46,6 +46,7 @@ pub enum Expr {
     Func {
         arg_name: Ident,
         arg_type: Type,
+        arg_phase: Phase,
         body: Box<Expr>,
     },
     Inst {

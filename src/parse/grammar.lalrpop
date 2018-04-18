@@ -159,10 +159,14 @@ BlockExpr: syntax::Expr = {
         }
     },
 
-    "func" "(" <arg_name: Ident> ":" <arg_type: Type> ")" "->" <body: BlockExpr> => {
+    "func" "(" <phase: "static"?> <arg_name: Ident> ":" <arg_type: Type> ")" "->" <body: BlockExpr> => {
         syntax::Expr::Func {
             arg_name,
             arg_type,
+            arg_phase: match phase {
+                None => types::Phase::Dynamic,
+                Some(_) => types::Phase::Static,
+            },
             body: Box::new(body),
         }
     },

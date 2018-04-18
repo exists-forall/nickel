@@ -364,6 +364,17 @@ mod test {
             Ok(syntax::Expr::Func {
                 arg_name: mk_ident("x"),
                 arg_type: ty_var("T"),
+                arg_phase: types::Phase::Dynamic,
+                body: Box::new(ex_move_var("x")),
+            })
+        );
+
+        assert_eq!(
+            expr("func (static x : T) -> move x"),
+            Ok(syntax::Expr::Func {
+                arg_name: mk_ident("x"),
+                arg_type: ty_var("T"),
+                arg_phase: types::Phase::Static,
                 body: Box::new(ex_move_var("x")),
             })
         );
@@ -375,6 +386,7 @@ mod test {
                 body: Box::new(syntax::Expr::Func {
                     arg_name: mk_ident("x"),
                     arg_type: ty_var("T"),
+                    arg_phase: types::Phase::Dynamic,
                     body: Box::new(ex_move_var("x")),
                 }),
             })
@@ -390,6 +402,7 @@ mod test {
                 body: Box::new(syntax::Expr::Func {
                     arg_name: mk_ident("x"),
                     arg_type: ty_var("T"),
+                    arg_phase: types::Phase::Dynamic,
                     body: Box::new(ex_move_var("x")),
                 }),
             })
