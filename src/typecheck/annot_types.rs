@@ -45,6 +45,10 @@ pub enum Error<Name> {
         expected_parameters: usize,
         actual_parameters: usize,
     },
+    UnexpectedDynamic {
+        context: Context<Name>,
+        in_expr: Expr<Name>,
+    },
 }
 
 fn is_copyable_primitive<TAnnot: Clone, Name: Clone>(ty: &AnnotType<TAnnot, Name>) -> bool {
@@ -185,10 +189,14 @@ pub fn annot_types<Name: Clone>(
             check_moved_in_scope(ctx)?;
             ctx.pop_scope();
 
+            // unconditional dynamic phases are temporary -- should support both static and dynamic
+            // arguments and return values
             Ok(AnnotExpr::from_content_annot(
                 Type::from_content(TypeContent::Func {
                     arg: arg_type.clone(),
+                    arg_phase: Phase::Dynamic,
                     ret: body_annot.annot(),
+                    ret_phase: Phase::Dynamic,
                 }),
                 ExprContent::Func {
                     arg_name,
@@ -237,7 +245,24 @@ pub fn annot_types<Name: Clone>(
             let callee_annot = annot_types(ctx, callee)?;
             let arg_annot = annot_types(ctx, arg)?;
 
-            if let TypeContent::Func { arg, ret } = callee_annot.annot().to_content() {
+            if let TypeContent::Func {
+                arg,
+                arg_phase,
+                ret,
+                ret_phase: _,
+            } = callee_annot.annot().to_content()
+            {
+                // temporary check before proper phase checking is added
+                match arg_phase {
+                    Phase::Dynamic => {}
+                    Phase::Static => {
+                        return Err(Error::UnexpectedDynamic {
+                            context: ctx.clone(),
+                            in_expr: ex,
+                        })
+                    }
+                }
+
                 if !equiv(arg.clone(), arg_annot.annot()) {
                     return Err(Error::Mismatch {
                         context: ctx.clone(),

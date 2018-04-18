@@ -66,9 +66,13 @@ pub fn convert_type(
         }
 
         syntax::Type::Func { arg, ret } => {
+            // unconditional dynamic phases are temporary -- should support both static and dynamic
+            // arguments and return values
             let result = types::Type::from_content(types::TypeContent::Func {
                 arg: convert_type(type_names, *arg)?,
+                arg_phase: types::Phase::Dynamic,
                 ret: convert_type(type_names, *ret)?,
+                ret_phase: types::Phase::Dynamic,
             });
 
             Ok(result)

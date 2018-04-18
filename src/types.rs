@@ -11,6 +11,12 @@ pub enum Quantifier {
     ForAll,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Phase {
+    Static,
+    Dynamic,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum TypeDataInner<TAnnot, Name> {
     Unit,
@@ -22,7 +28,9 @@ enum TypeDataInner<TAnnot, Name> {
     },
     Func {
         arg: TypeData<TAnnot, Name>,
+        arg_phase: Phase,
         ret: TypeData<TAnnot, Name>,
+        ret_phase: Phase,
     },
     Pair {
         left: TypeData<TAnnot, Name>,
@@ -56,7 +64,9 @@ pub enum TypeContent<TAnnot, Name> {
     },
     Func {
         arg: AnnotType<TAnnot, Name>,
+        arg_phase: Phase,
         ret: AnnotType<TAnnot, Name>,
+        ret_phase: Phase,
     },
     Pair {
         left: AnnotType<TAnnot, Name>,
@@ -134,7 +144,12 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 }
             }
 
-            TypeContent::Func { arg, ret } => {
+            TypeContent::Func {
+                arg,
+                arg_phase,
+                ret,
+                ret_phase,
+            } => {
                 assert_eq!(arg.free, ret.free, "Free variables do not match");
                 AnnotType {
                     free: arg.free,
@@ -143,7 +158,9 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                         max_index: arg.data.max_index.max(ret.data.max_index),
                         inner: Rc::new(TypeDataInner::Func {
                             arg: arg.data,
+                            arg_phase,
                             ret: ret.data,
+                            ret_phase,
                         }),
                     },
                 }
@@ -222,16 +239,23 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 }
             }
 
-            &TypeDataInner::Func { ref arg, ref ret } => {
+            &TypeDataInner::Func {
+                ref arg,
+                arg_phase,
+                ref ret,
+                ret_phase,
+            } => {
                 TypeContent::Func {
                     arg: AnnotType {
                         free: self.free,
                         data: arg.clone(),
                     },
+                    arg_phase,
                     ret: AnnotType {
                         free: self.free,
                         data: ret.clone(),
                     },
+                    ret_phase,
                 }
             }
 
@@ -324,10 +348,17 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 }
             }
 
-            TypeContent::Func { arg, ret } => {
+            TypeContent::Func {
+                arg,
+                arg_phase,
+                ret,
+                ret_phase,
+            } => {
                 TypeContent::Func {
                     arg: arg.increment_above(index, inc_by),
+                    arg_phase,
                     ret: ret.increment_above(index, inc_by),
+                    ret_phase,
                 }
             }
 
@@ -435,12 +466,19 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 )
             }
 
-            TypeContent::Func { arg, ret } => {
+            TypeContent::Func {
+                arg,
+                arg_phase,
+                ret,
+                ret_phase,
+            } => {
                 AnnotType::from_content_annot(
                     self.annot(),
                     TypeContent::Func {
                         arg: arg.subst_inner(start_index, replacements),
+                        arg_phase,
                         ret: ret.subst_inner(start_index, replacements),
+                        ret_phase,
                     },
                 )
             }

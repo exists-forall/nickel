@@ -65,9 +65,30 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             }
         }
 
-        TypeContent::Func { arg, ret } => {
-            let arg_pretty = to_pretty(names, Place::FuncArg, arg);
-            let ret_pretty = to_pretty(names, Place::FuncRet, ret);
+        TypeContent::Func {
+            arg,
+            arg_phase,
+            ret,
+            ret_phase,
+        } => {
+            let arg_pretty: Box<Pretty> = match arg_phase {
+                Phase::Dynamic => Box::new(to_pretty(names, Place::FuncArg, arg)),
+                Phase::Static => {
+                    let arg_ty_pretty = to_pretty(names, Place::Root, arg);
+                    Box::new(Group::new(
+                        "("
+                            .join(block(Group::new("static".join(Sep(1)).join(arg_ty_pretty))))
+                            .join(")"),
+                    ))
+                }
+            };
+
+            let ret_ty_pretty = to_pretty(names, Place::FuncRet, ret);
+
+            let ret_pretty = match ret_phase {
+                Phase::Dynamic => Group::new(None.join(ret_ty_pretty)),
+                Phase::Static => Group::new(Some("static".join(Sep(1))).join(ret_ty_pretty)),
+            };
 
             let content_pretty = arg_pretty.join(" ->").join(Sep(1)).join(ret_pretty);
 

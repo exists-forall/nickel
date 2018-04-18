@@ -34,12 +34,19 @@ pub fn equiv<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
 
         (TypeContent::Func {
              arg: arg1,
+             arg_phase: arg_phase1,
              ret: ret1,
+             ret_phase: ret_phase1,
          },
          TypeContent::Func {
              arg: arg2,
+             arg_phase: arg_phase2,
              ret: ret2,
-         }) => equiv(arg1, arg2) && equiv(ret1, ret2),
+             ret_phase: ret_phase2,
+         }) => {
+            equiv(arg1, arg2) && arg_phase1 == arg_phase2 && equiv(ret1, ret2) &&
+                ret_phase1 == ret_phase2
+        }
 
         (TypeContent::Pair {
              left: left1,

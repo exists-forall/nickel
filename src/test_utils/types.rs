@@ -47,7 +47,12 @@ pub fn forall_named(name: &str, body: Type<Rc<String>>) -> Type<Rc<String>> {
 }
 
 pub fn func(arg: Type<Rc<String>>, ret: Type<Rc<String>>) -> Type<Rc<String>> {
-    Type::from_content(TypeContent::Func { arg, ret })
+    Type::from_content(TypeContent::Func {
+        arg,
+        arg_phase: Phase::Dynamic,
+        ret,
+        ret_phase: Phase::Dynamic,
+    })
 }
 
 pub fn func_forall(
