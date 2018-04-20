@@ -192,6 +192,10 @@ mod test {
         );
         assert_eq!(*names.add_name(Rc::new("forall".to_owned())), "`forall`#1");
 
+        assert_eq!(*names.add_name(Rc::new("equiv".to_owned())), "`equiv`");
+
+        assert_eq!(*names.add_name(Rc::new("cast".to_owned())), "`cast`");
+
         assert_eq!(*names.get_name(0), "``");
         assert_eq!(*names.get_name(1), "``#1");
         assert_eq!(*names.get_name(2), "`forall`");
@@ -199,5 +203,7 @@ mod test {
         assert_eq!(*names.get_name(4), "`\\\\`");
         assert_eq!(*names.get_name(5), "`Hello \\\\ world \\``");
         assert_eq!(*names.get_name(6), "`forall`#1");
+        assert_eq!(*names.get_name(7), "`equiv`");
+        assert_eq!(*names.get_name(7), "`cast`");
     }
 }
