@@ -204,6 +204,6 @@ mod test {
         assert_eq!(*names.get_name(5), "`Hello \\\\ world \\``");
         assert_eq!(*names.get_name(6), "`forall`#1");
         assert_eq!(*names.get_name(7), "`equiv`");
-        assert_eq!(*names.get_name(7), "`cast`");
+        assert_eq!(*names.get_name(8), "`cast`");
     }
 }
