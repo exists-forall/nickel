@@ -568,6 +568,78 @@ mod test {
         Names(names::Error),
     }
 
+    // Parse a type and convert it to an internal representation
+    fn conv_ty(free_types: &[&str], s: &str) -> Result<types::Type<Rc<String>>, ConvError> {
+        let mut type_names = names::Names::new();
+        for ty in free_types {
+            type_names.add_name(mk_ident(ty)).map_err(ConvError::Names)?;
+        }
+
+        let result =
+            to_internal::convert_type(&mut type_names, type_(s).map_err(ConvError::Parse)?)
+                .map_err(ConvError::Names)?;
+
+        assert_eq!(result.free(), free_types.len());
+
+        Ok(result)
+    }
+
+    #[test]
+    fn convert_type() {
+        use test_utils::types::*;
+
+        assert_eq!(conv_ty(&[], "()"), Ok(unit(0)));
+        assert_eq!(conv_ty(&["foo", "bar"], "()"), Ok(unit(2)));
+
+        assert_eq!(conv_ty(&["foo", "bar"], "foo"), Ok(var(2, 0)));
+        assert_eq!(conv_ty(&["foo", "bar"], "bar"), Ok(var(2, 1)));
+
+        assert_eq!(
+            conv_ty(&[], "forall {T} T"),
+            Ok(quantified_named(types::Quantifier::ForAll, "T", var(1, 0)))
+        );
+
+        assert_eq!(
+            conv_ty(&["T"], "forall {U} (T, U)"),
+            Ok(quantified_named(
+                types::Quantifier::ForAll,
+                "U",
+                pair(var(2, 0), var(2, 1))
+            ))
+        );
+
+        assert_eq!(
+            conv_ty(&[], "exists {T} T"),
+            Ok(quantified_named(types::Quantifier::Exists, "T", var(1, 0)))
+        );
+
+        assert_eq!(
+            conv_ty(&["T"], "exists {U} (T, U)"),
+            Ok(quantified_named(
+                types::Quantifier::Exists,
+                "U",
+                pair(var(2, 0), var(2, 1))
+            ))
+        );
+
+        assert_eq!(conv_ty(&["F", "X"], "F X"), Ok(app(var(2, 0), var(2, 1))));
+
+        assert_eq!(
+            conv_ty(&["A", "B"], "A -> B"),
+            Ok(func(var(2, 0), var(2, 1)))
+        );
+
+        assert_eq!(
+            conv_ty(&["A", "B", "C", "D"], "A B -> C D"),
+            Ok(func(app(var(4, 0), var(4, 1)), app(var(4, 2), var(4, 3))))
+        );
+
+        assert_eq!(
+            conv_ty(&["A", "B"], "equiv A B"),
+            Ok(equiv_ty(var(2, 0), var(2, 1)))
+        );
+    }
+
     // Parse an expression and convert it to an internal representation
     fn conv(
         free_vars: &[&str],
