@@ -204,7 +204,7 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
             ExprContent::ForAll { type_params, body } => {
                 assert!(
                     type_params.len() <= body.free_types,
-                    "Must have at least {} free type variables",
+                    "Must have at least {} free type variables"
                 );
 
                 AnnotExpr {
@@ -234,7 +234,7 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
 
                 assert!(
                     1 <= body.free_vars,
-                    "Must have at least one free term variable",
+                    "Must have at least one free term variable"
                 );
 
                 AnnotExpr {
