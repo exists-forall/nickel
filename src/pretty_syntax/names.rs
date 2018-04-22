@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::fmt::Write;
 
-use parse::lex::{valid_name, quote_name};
+use parse::lex::{quote_name, valid_name};
 
 #[derive(Clone, Debug)]
 struct Scope {

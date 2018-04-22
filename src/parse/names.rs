@@ -35,7 +35,9 @@ impl Names {
     }
 
     pub fn push_scope(&mut self) {
-        self.scopes.push(Scope { added_names: Vec::new() })
+        self.scopes.push(Scope {
+            added_names: Vec::new(),
+        })
     }
 
     pub fn pop_scope(&mut self) {

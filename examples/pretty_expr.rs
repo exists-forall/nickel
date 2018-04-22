@@ -10,7 +10,7 @@ use nickel_lang::expr::*;
 use nickel_lang::test_utils::types;
 use nickel_lang::test_utils::expr::*;
 use nickel_lang::pretty_syntax::names::Names;
-use nickel_lang::pretty_syntax::expr::{Place, to_pretty};
+use nickel_lang::pretty_syntax::expr::{to_pretty, Place};
 
 fn print_expr(var_names: &mut Names, type_names: &mut Names, expr: Expr<Rc<String>>) {
     write(

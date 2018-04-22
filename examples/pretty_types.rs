@@ -8,7 +8,7 @@ use pretty_trait::println_simple;
 use nickel_lang::types::*;
 use nickel_lang::test_utils::types::*;
 use nickel_lang::pretty_syntax::names::Names;
-use nickel_lang::pretty_syntax::types::{Place, to_pretty};
+use nickel_lang::pretty_syntax::types::{to_pretty, Place};
 
 fn print_type(names: &mut Names, ty: Type<Rc<String>>) {
     println_simple(&to_pretty(names, Place::Root, ty));

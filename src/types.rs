@@ -20,7 +20,9 @@ pub enum Phase {
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum TypeDataInner<TAnnot, Name> {
     Unit,
-    Var { index: usize },
+    Var {
+        index: usize,
+    },
     Quantified {
         quantifier: Quantifier,
         param: TypeParam<Name>,
@@ -55,8 +57,13 @@ struct TypeData<TAnnot, Name> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TypeContent<TAnnot, Name> {
-    Unit { free: usize },
-    Var { free: usize, index: usize },
+    Unit {
+        free: usize,
+    },
+    Var {
+        free: usize,
+        index: usize,
+    },
     Quantified {
         quantifier: Quantifier,
         param: TypeParam<Name>,
@@ -101,16 +108,14 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
 
     pub fn from_content_annot(annot: TAnnot, content: TypeContent<TAnnot, Name>) -> Self {
         match content {
-            TypeContent::Unit { free } => {
-                AnnotType {
-                    free,
-                    data: TypeData {
-                        annot,
-                        max_index: 0,
-                        inner: Rc::new(TypeDataInner::Unit),
-                    },
-                }
-            }
+            TypeContent::Unit { free } => AnnotType {
+                free,
+                data: TypeData {
+                    annot,
+                    max_index: 0,
+                    inner: Rc::new(TypeDataInner::Unit),
+                },
+            },
 
             TypeContent::Var { free, index } => {
                 assert!(index < free);
@@ -217,92 +222,80 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
         match &*self.data.inner {
             &TypeDataInner::Unit => TypeContent::Unit { free: self.free },
 
-            &TypeDataInner::Var { index } => {
-                TypeContent::Var {
-                    free: self.free,
-                    index,
-                }
-            }
+            &TypeDataInner::Var { index } => TypeContent::Var {
+                free: self.free,
+                index,
+            },
 
             &TypeDataInner::Quantified {
                 quantifier,
                 ref param,
                 ref body,
-            } => {
-                TypeContent::Quantified {
-                    quantifier,
-                    param: param.clone(),
-                    body: AnnotType {
-                        free: self.free + 1,
-                        data: body.clone(),
-                    },
-                }
-            }
+            } => TypeContent::Quantified {
+                quantifier,
+                param: param.clone(),
+                body: AnnotType {
+                    free: self.free + 1,
+                    data: body.clone(),
+                },
+            },
 
             &TypeDataInner::Func {
                 ref arg,
                 arg_phase,
                 ref ret,
                 ret_phase,
-            } => {
-                TypeContent::Func {
-                    arg: AnnotType {
-                        free: self.free,
-                        data: arg.clone(),
-                    },
-                    arg_phase,
-                    ret: AnnotType {
-                        free: self.free,
-                        data: ret.clone(),
-                    },
-                    ret_phase,
-                }
-            }
+            } => TypeContent::Func {
+                arg: AnnotType {
+                    free: self.free,
+                    data: arg.clone(),
+                },
+                arg_phase,
+                ret: AnnotType {
+                    free: self.free,
+                    data: ret.clone(),
+                },
+                ret_phase,
+            },
 
             &TypeDataInner::Pair {
                 ref left,
                 ref right,
-            } => {
-                TypeContent::Pair {
-                    left: AnnotType {
-                        free: self.free,
-                        data: left.clone(),
-                    },
-                    right: AnnotType {
-                        free: self.free,
-                        data: right.clone(),
-                    },
-                }
-            }
+            } => TypeContent::Pair {
+                left: AnnotType {
+                    free: self.free,
+                    data: left.clone(),
+                },
+                right: AnnotType {
+                    free: self.free,
+                    data: right.clone(),
+                },
+            },
 
             &TypeDataInner::App {
                 ref constructor,
                 ref param,
-            } => {
-                TypeContent::App {
-                    constructor: AnnotType {
-                        free: self.free,
-                        data: constructor.clone(),
-                    },
-                    param: AnnotType {
-                        free: self.free,
-                        data: param.clone(),
-                    },
-                }
-            }
+            } => TypeContent::App {
+                constructor: AnnotType {
+                    free: self.free,
+                    data: constructor.clone(),
+                },
+                param: AnnotType {
+                    free: self.free,
+                    data: param.clone(),
+                },
+            },
 
-            &TypeDataInner::Equiv { ref orig, ref dest } => {
-                TypeContent::Equiv {
-                    orig: AnnotType {
-                        free: self.free,
-                        data: orig.clone(),
-                    },
-                    dest: AnnotType {
-                        free: self.free,
-                        data: dest.clone(),
-                    },
-                }
-            }
+            &TypeDataInner::Equiv { ref orig, ref dest } => TypeContent::Equiv {
+                orig: AnnotType {
+                    free: self.free,
+                    data: orig.clone(),
+                },
+                dest: AnnotType {
+                    free: self.free,
+                    data: dest.clone(),
+                },
+            },
         }
     }
 
@@ -317,7 +310,9 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
         }
 
         let new_content = match self.to_content() {
-            TypeContent::Unit { free } => TypeContent::Unit { free: free + inc_by },
+            TypeContent::Unit { free } => TypeContent::Unit {
+                free: free + inc_by,
+            },
 
             TypeContent::Var {
                 free,
@@ -340,48 +335,38 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 quantifier,
                 param,
                 body,
-            } => {
-                TypeContent::Quantified {
-                    quantifier,
-                    param,
-                    body: body.increment_above(index, inc_by),
-                }
-            }
+            } => TypeContent::Quantified {
+                quantifier,
+                param,
+                body: body.increment_above(index, inc_by),
+            },
 
             TypeContent::Func {
                 arg,
                 arg_phase,
                 ret,
                 ret_phase,
-            } => {
-                TypeContent::Func {
-                    arg: arg.increment_above(index, inc_by),
-                    arg_phase,
-                    ret: ret.increment_above(index, inc_by),
-                    ret_phase,
-                }
-            }
+            } => TypeContent::Func {
+                arg: arg.increment_above(index, inc_by),
+                arg_phase,
+                ret: ret.increment_above(index, inc_by),
+                ret_phase,
+            },
 
-            TypeContent::Pair { left, right } => {
-                TypeContent::Pair {
-                    left: left.increment_above(index, inc_by),
-                    right: right.increment_above(index, inc_by),
-                }
-            }
+            TypeContent::Pair { left, right } => TypeContent::Pair {
+                left: left.increment_above(index, inc_by),
+                right: right.increment_above(index, inc_by),
+            },
 
-            TypeContent::App { constructor, param } => {
-                TypeContent::App {
-                    constructor: constructor.increment_above(index, inc_by),
-                    param: param.increment_above(index, inc_by),
-                }
-            }
+            TypeContent::App { constructor, param } => TypeContent::App {
+                constructor: constructor.increment_above(index, inc_by),
+                param: param.increment_above(index, inc_by),
+            },
 
-            TypeContent::Equiv { orig, dest } => {
-                TypeContent::Equiv {
-                    orig: orig.increment_above(index, inc_by),
-                    dest: dest.increment_above(index, inc_by),
-                }
-            }
+            TypeContent::Equiv { orig, dest } => TypeContent::Equiv {
+                orig: orig.increment_above(index, inc_by),
+                dest: dest.increment_above(index, inc_by),
+            },
         };
 
         AnnotType::from_content_annot(self.annot(), new_content)
@@ -418,12 +403,12 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
         }
 
         match self.to_content() {
-            TypeContent::Unit { free } => {
-                AnnotType::from_content_annot(
-                    self.annot(),
-                    TypeContent::Unit { free: free - replacements.len() },
-                )
-            }
+            TypeContent::Unit { free } => AnnotType::from_content_annot(
+                self.annot(),
+                TypeContent::Unit {
+                    free: free - replacements.len(),
+                },
+            ),
 
             TypeContent::Var { free, index } => {
                 let new_free = free - replacements.len();
@@ -455,63 +440,53 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 quantifier,
                 param,
                 body,
-            } => {
-                AnnotType::from_content_annot(
-                    self.annot(),
-                    TypeContent::Quantified {
-                        quantifier,
-                        param,
-                        body: body.subst_inner(start_index, replacements),
-                    },
-                )
-            }
+            } => AnnotType::from_content_annot(
+                self.annot(),
+                TypeContent::Quantified {
+                    quantifier,
+                    param,
+                    body: body.subst_inner(start_index, replacements),
+                },
+            ),
 
             TypeContent::Func {
                 arg,
                 arg_phase,
                 ret,
                 ret_phase,
-            } => {
-                AnnotType::from_content_annot(
-                    self.annot(),
-                    TypeContent::Func {
-                        arg: arg.subst_inner(start_index, replacements),
-                        arg_phase,
-                        ret: ret.subst_inner(start_index, replacements),
-                        ret_phase,
-                    },
-                )
-            }
+            } => AnnotType::from_content_annot(
+                self.annot(),
+                TypeContent::Func {
+                    arg: arg.subst_inner(start_index, replacements),
+                    arg_phase,
+                    ret: ret.subst_inner(start_index, replacements),
+                    ret_phase,
+                },
+            ),
 
-            TypeContent::Pair { left, right } => {
-                AnnotType::from_content_annot(
-                    self.annot(),
-                    TypeContent::Pair {
-                        left: left.subst_inner(start_index, replacements),
-                        right: right.subst_inner(start_index, replacements),
-                    },
-                )
-            }
+            TypeContent::Pair { left, right } => AnnotType::from_content_annot(
+                self.annot(),
+                TypeContent::Pair {
+                    left: left.subst_inner(start_index, replacements),
+                    right: right.subst_inner(start_index, replacements),
+                },
+            ),
 
-            TypeContent::App { constructor, param } => {
-                AnnotType::from_content_annot(
-                    self.annot(),
-                    TypeContent::App {
-                        constructor: constructor.subst_inner(start_index, replacements),
-                        param: param.subst_inner(start_index, replacements),
-                    },
-                )
-            }
+            TypeContent::App { constructor, param } => AnnotType::from_content_annot(
+                self.annot(),
+                TypeContent::App {
+                    constructor: constructor.subst_inner(start_index, replacements),
+                    param: param.subst_inner(start_index, replacements),
+                },
+            ),
 
-            TypeContent::Equiv { orig, dest } => {
-                AnnotType::from_content_annot(
-                    self.annot(),
-                    TypeContent::Equiv {
-                        orig: orig.subst_inner(start_index, replacements),
-                        dest: dest.subst_inner(start_index, replacements),
-                    },
-                )
-            }
+            TypeContent::Equiv { orig, dest } => AnnotType::from_content_annot(
+                self.annot(),
+                TypeContent::Equiv {
+                    orig: orig.subst_inner(start_index, replacements),
+                    dest: dest.subst_inner(start_index, replacements),
+                },
+            ),
         }
     }
 }
@@ -739,28 +714,14 @@ mod test {
         );
 
         assert_eq!(
-            pair(pair(var(4, 1), var(4, 2)), var(4, 3)).subst(
-                &[
-                    pair(
-                        var(2, 0),
-                        var(2, 0),
-                    ),
-                    var(2, 1),
-                ],
-            ),
+            pair(pair(var(4, 1), var(4, 2)), var(4, 3))
+                .subst(&[pair(var(2, 0), var(2, 0),), var(2, 1),],),
             pair(pair(var(2, 1), pair(var(2, 0), var(2, 0))), var(2, 1))
         );
 
         assert_eq!(
-            func(func(var(4, 1), var(4, 2)), var(4, 3)).subst(
-                &[
-                    pair(
-                        var(2, 0),
-                        var(2, 0),
-                    ),
-                    var(2, 1),
-                ],
-            ),
+            func(func(var(4, 1), var(4, 2)), var(4, 3))
+                .subst(&[pair(var(2, 0), var(2, 0),), var(2, 1),],),
             func(func(var(2, 1), pair(var(2, 0), var(2, 0))), var(2, 1))
         );
     }
@@ -778,22 +739,8 @@ mod test {
         );
 
         assert_eq!(
-            exists(pair(var(3, 0), pair(var(3, 1), var(3, 2)))).subst(
-                &[
-                    exists(
-                        pair(
-                            var(
-                                2,
-                                0,
-                            ),
-                            var(
-                                2,
-                                1,
-                            ),
-                        ),
-                    ),
-                ],
-            ),
+            exists(pair(var(3, 0), pair(var(3, 1), var(3, 2))))
+                .subst(&[exists(pair(var(2, 0,), var(2, 1,),),),],),
             exists(pair(
                 var(2, 0),
                 pair(exists(pair(var(3, 0), var(3, 2))), var(2, 1)),

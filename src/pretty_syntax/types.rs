@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, block, Indent};
+use pretty_trait::{block, Conditional, Group, Indent, JoinExt, Pretty, Sep};
 
 use super::super::types::*;
 use pretty_syntax::names::Names;
@@ -55,11 +55,9 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::QuantifierBody => Box::new(content_pretty),
 
-                Place::Root | Place::FuncRet | Place::PairLeft | Place::PairRight => Box::new(
-                    Group::new(
-                        content_pretty,
-                    ),
-                ),
+                Place::Root | Place::FuncRet | Place::PairLeft | Place::PairRight => {
+                    Box::new(Group::new(content_pretty))
+                }
 
                 _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
             }
@@ -76,8 +74,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 Phase::Static => {
                     let arg_ty_pretty = to_pretty(names, Place::Root, arg);
                     Box::new(Group::new(
-                        "("
-                            .join(block(Group::new("static".join(Sep(1)).join(arg_ty_pretty))))
+                        "(".join(block(Group::new("static".join(Sep(1)).join(arg_ty_pretty))))
                             .join(")"),
                     ))
                 }
@@ -116,13 +113,10 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                     content_pretty.join(Conditional::OnlyBroken(",")),
                 )),
 
-                _ => {
-                    Box::new(Group::new(
-                        "("
-                            .join(block(content_pretty.join(Conditional::OnlyBroken(","))))
-                            .join(")"),
-                    ))
-                }
+                _ => Box::new(Group::new(
+                    "(".join(block(content_pretty.join(Conditional::OnlyBroken(","))))
+                        .join(")"),
+                )),
             }
         }
 
@@ -135,8 +129,12 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::AppConstructor => Box::new(content_pretty),
 
-                Place::Root | Place::QuantifierBody | Place::FuncArg | Place::FuncRet |
-                Place::PairLeft | Place::PairRight => Box::new(Group::new(content_pretty)),
+                Place::Root
+                | Place::QuantifierBody
+                | Place::FuncArg
+                | Place::FuncRet
+                | Place::PairLeft
+                | Place::PairRight => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new("(".join(block(content_pretty)).join(")")),
             }
@@ -151,8 +149,12 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             ));
 
             match place {
-                Place::Root | Place::QuantifierBody | Place::FuncArg | Place::FuncRet |
-                Place::PairLeft | Place::PairRight => Box::new(Group::new(content_pretty)),
+                Place::Root
+                | Place::QuantifierBody
+                | Place::FuncArg
+                | Place::FuncRet
+                | Place::PairLeft
+                | Place::PairRight => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new("(".join(block(content_pretty)).join(")")),
             }

@@ -169,7 +169,9 @@ mod test {
             type_("exists {t} t"),
             Ok(syntax::Type::Quantified {
                 quantifier: types::Quantifier::Exists,
-                param: syntax::TypeParam { ident: mk_ident("t") },
+                param: syntax::TypeParam {
+                    ident: mk_ident("t"),
+                },
                 body: Box::new(ty_var("t")),
             })
         );
@@ -218,7 +220,9 @@ mod test {
             type_("forall {t} t -> foo"),
             Ok(syntax::Type::Quantified {
                 quantifier: types::Quantifier::ForAll,
-                param: syntax::TypeParam { ident: mk_ident("t") },
+                param: syntax::TypeParam {
+                    ident: mk_ident("t"),
+                },
                 body: Box::new(syntax::Type::Func {
                     arg: Box::new(ty_var("t")),
                     arg_phase: types::Phase::Dynamic,
@@ -232,13 +236,19 @@ mod test {
             type_("forall {T} {U} {V} (T, U, V)"),
             Ok(syntax::Type::Quantified {
                 quantifier: types::Quantifier::ForAll,
-                param: syntax::TypeParam { ident: mk_ident("T") },
+                param: syntax::TypeParam {
+                    ident: mk_ident("T"),
+                },
                 body: Box::new(syntax::Type::Quantified {
                     quantifier: types::Quantifier::ForAll,
-                    param: syntax::TypeParam { ident: mk_ident("U") },
+                    param: syntax::TypeParam {
+                        ident: mk_ident("U"),
+                    },
                     body: Box::new(syntax::Type::Quantified {
                         quantifier: types::Quantifier::ForAll,
-                        param: syntax::TypeParam { ident: mk_ident("V") },
+                        param: syntax::TypeParam {
+                            ident: mk_ident("V"),
+                        },
                         body: Box::new(syntax::Type::Pair {
                             left: Box::new(ty_var("T")),
                             right: Box::new(syntax::Type::Pair {
@@ -287,7 +297,9 @@ mod test {
             type_("exists {f} (Functor f, f T)"),
             Ok(syntax::Type::Quantified {
                 quantifier: types::Quantifier::Exists,
-                param: syntax::TypeParam { ident: mk_ident("f") },
+                param: syntax::TypeParam {
+                    ident: mk_ident("f"),
+                },
                 body: Box::new(syntax::Type::Pair {
                     left: Box::new(syntax::Type::App {
                         constructor: Box::new(ty_var("Functor")),
@@ -382,7 +394,11 @@ mod test {
         assert_eq!(
             expr("forall {T} func (x : T) -> move x"),
             Ok(syntax::Expr::ForAll {
-                type_params: vec![syntax::TypeParam { ident: mk_ident("T") }],
+                type_params: vec![
+                    syntax::TypeParam {
+                        ident: mk_ident("T"),
+                    },
+                ],
                 body: Box::new(syntax::Expr::Func {
                     arg_name: mk_ident("x"),
                     arg_type: ty_var("T"),
@@ -396,8 +412,12 @@ mod test {
             expr("forall {T} {U} func (x : T) -> move x"),
             Ok(syntax::Expr::ForAll {
                 type_params: vec![
-                    syntax::TypeParam { ident: mk_ident("T") },
-                    syntax::TypeParam { ident: mk_ident("U") },
+                    syntax::TypeParam {
+                        ident: mk_ident("T"),
+                    },
+                    syntax::TypeParam {
+                        ident: mk_ident("U"),
+                    },
                 ],
                 body: Box::new(syntax::Expr::Func {
                     arg_name: mk_ident("x"),
@@ -592,10 +612,7 @@ mod test {
             conv(&["foo", "bar", "baz"], &[], "foo, bar, baz"),
             Ok(ex::pair(
                 ex::var(Usage::Copy, 3, 0, 0),
-                ex::pair(
-                    ex::var(Usage::Copy, 3, 0, 1),
-                    ex::var(Usage::Copy, 3, 0, 2),
-                ),
+                ex::pair(ex::var(Usage::Copy, 3, 0, 1), ex::var(Usage::Copy, 3, 0, 2),),
             ))
         );
 
@@ -615,10 +632,7 @@ mod test {
                 ex::unit(0, 0),
                 ex::pair(
                     ex::var(Usage::Copy, 3, 0, 0),
-                    ex::pair(
-                        ex::var(Usage::Copy, 3, 0, 1),
-                        ex::var(Usage::Copy, 3, 0, 2),
-                    ),
+                    ex::pair(ex::var(Usage::Copy, 3, 0, 1), ex::var(Usage::Copy, 3, 0, 2),),
                 ),
             ))
         );
@@ -650,10 +664,7 @@ mod test {
             Ok(ex::make_exists_named(
                 &[("T", ty::var(2, 0)), ("U", ty::var(2, 1))],
                 ty::pair(ty::var(4, 2), ty::var(4, 3)),
-                ex::pair(
-                    ex::var(Usage::Move, 2, 2, 0),
-                    ex::var(Usage::Move, 2, 2, 1),
-                ),
+                ex::pair(ex::var(Usage::Move, 2, 2, 0), ex::var(Usage::Move, 2, 2, 1),),
             ))
         );
     }

@@ -12,68 +12,80 @@ pub fn equiv<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
     match (ty1.to_content(), ty2.to_content()) {
         (TypeContent::Unit { free: _ }, TypeContent::Unit { free: _ }) => true,
 
-        (TypeContent::Var {
-             index: index1,
-             free: _,
-         },
-         TypeContent::Var {
-             index: index2,
-             free: _,
-         }) => index1 == index2,
+        (
+            TypeContent::Var {
+                index: index1,
+                free: _,
+            },
+            TypeContent::Var {
+                index: index2,
+                free: _,
+            },
+        ) => index1 == index2,
 
-        (TypeContent::Quantified {
-             quantifier: quantifier1,
-             param: _,
-             body: body1,
-         },
-         TypeContent::Quantified {
-             quantifier: quantifier2,
-             param: _,
-             body: body2,
-         }) => quantifier1 == quantifier2 && equiv(body1, body2),
+        (
+            TypeContent::Quantified {
+                quantifier: quantifier1,
+                param: _,
+                body: body1,
+            },
+            TypeContent::Quantified {
+                quantifier: quantifier2,
+                param: _,
+                body: body2,
+            },
+        ) => quantifier1 == quantifier2 && equiv(body1, body2),
 
-        (TypeContent::Func {
-             arg: arg1,
-             arg_phase: arg_phase1,
-             ret: ret1,
-             ret_phase: ret_phase1,
-         },
-         TypeContent::Func {
-             arg: arg2,
-             arg_phase: arg_phase2,
-             ret: ret2,
-             ret_phase: ret_phase2,
-         }) => {
-            equiv(arg1, arg2) && arg_phase1 == arg_phase2 && equiv(ret1, ret2) &&
-                ret_phase1 == ret_phase2
+        (
+            TypeContent::Func {
+                arg: arg1,
+                arg_phase: arg_phase1,
+                ret: ret1,
+                ret_phase: ret_phase1,
+            },
+            TypeContent::Func {
+                arg: arg2,
+                arg_phase: arg_phase2,
+                ret: ret2,
+                ret_phase: ret_phase2,
+            },
+        ) => {
+            equiv(arg1, arg2) && arg_phase1 == arg_phase2 && equiv(ret1, ret2)
+                && ret_phase1 == ret_phase2
         }
 
-        (TypeContent::Pair {
-             left: left1,
-             right: right1,
-         },
-         TypeContent::Pair {
-             left: left2,
-             right: right2,
-         }) => equiv(left1, left2) && equiv(right1, right2),
+        (
+            TypeContent::Pair {
+                left: left1,
+                right: right1,
+            },
+            TypeContent::Pair {
+                left: left2,
+                right: right2,
+            },
+        ) => equiv(left1, left2) && equiv(right1, right2),
 
-        (TypeContent::App {
-             constructor: constructor1,
-             param: param1,
-         },
-         TypeContent::App {
-             constructor: constructor2,
-             param: param2,
-         }) => equiv(constructor1, constructor2) && equiv(param1, param2),
+        (
+            TypeContent::App {
+                constructor: constructor1,
+                param: param1,
+            },
+            TypeContent::App {
+                constructor: constructor2,
+                param: param2,
+            },
+        ) => equiv(constructor1, constructor2) && equiv(param1, param2),
 
-        (TypeContent::Equiv {
-             orig: orig1,
-             dest: dest1,
-         },
-         TypeContent::Equiv {
-             orig: orig2,
-             dest: dest2,
-         }) => equiv(orig1, orig2) && equiv(dest1, dest2),
+        (
+            TypeContent::Equiv {
+                orig: orig1,
+                dest: dest1,
+            },
+            TypeContent::Equiv {
+                orig: orig2,
+                dest: dest2,
+            },
+        ) => equiv(orig1, orig2) && equiv(dest1, dest2),
 
         (_, _) => false,
     }
@@ -101,52 +113,60 @@ pub fn subtype<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
     match (child.to_content(), parent.to_content()) {
         (TypeContent::Unit { free: _ }, TypeContent::Unit { free: _ }) => true,
 
-        (TypeContent::Var {
-             index: child_index,
-             free: _,
-         },
-         TypeContent::Var {
-             index: parent_index,
-             free: _,
-         }) => child_index == parent_index,
+        (
+            TypeContent::Var {
+                index: child_index,
+                free: _,
+            },
+            TypeContent::Var {
+                index: parent_index,
+                free: _,
+            },
+        ) => child_index == parent_index,
 
-        (TypeContent::Quantified {
-             quantifier: child_quantifier,
-             param: _,
-             body: child_body,
-         },
-         TypeContent::Quantified {
-             quantifier: parent_quantifier,
-             param: _,
-             body: parent_body,
-         }) => child_quantifier == parent_quantifier && subtype(child_body, parent_body),
+        (
+            TypeContent::Quantified {
+                quantifier: child_quantifier,
+                param: _,
+                body: child_body,
+            },
+            TypeContent::Quantified {
+                quantifier: parent_quantifier,
+                param: _,
+                body: parent_body,
+            },
+        ) => child_quantifier == parent_quantifier && subtype(child_body, parent_body),
 
-        (TypeContent::Func {
-             arg: child_arg,
-             arg_phase: child_arg_phase,
-             ret: child_ret,
-             ret_phase: child_ret_phase,
-         },
-         TypeContent::Func {
-             arg: parent_arg,
-             arg_phase: parent_arg_phase,
-             ret: parent_ret,
-             ret_phase: parent_ret_phase,
-         }) => {
+        (
+            TypeContent::Func {
+                arg: child_arg,
+                arg_phase: child_arg_phase,
+                ret: child_ret,
+                ret_phase: child_ret_phase,
+            },
+            TypeContent::Func {
+                arg: parent_arg,
+                arg_phase: parent_arg_phase,
+                ret: parent_ret,
+                ret_phase: parent_ret_phase,
+            },
+        ) => {
             subphase(parent_arg_phase, child_arg_phase) && // arg phase is contravariant
              subphase(child_ret_phase, parent_ret_phase) && // ret phase is covariant
              subtype(parent_arg, child_arg) && // arg type is contravariant
              subtype(child_ret, parent_ret) // ret type is covariant
         }
 
-        (TypeContent::Pair {
-             left: child_left,
-             right: child_right,
-         },
-         TypeContent::Pair {
-             left: parent_left,
-             right: parent_right,
-         }) => subtype(child_left, parent_left) && subtype(child_right, parent_right),
+        (
+            TypeContent::Pair {
+                left: child_left,
+                right: child_right,
+            },
+            TypeContent::Pair {
+                left: parent_left,
+                right: parent_right,
+            },
+        ) => subtype(child_left, parent_left) && subtype(child_right, parent_right),
 
         (TypeContent::App { .. }, TypeContent::App { .. }) => equiv(child, parent),
 

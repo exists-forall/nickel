@@ -1,4 +1,4 @@
-use types::{Quantifier, Phase};
+use types::{Phase, Quantifier};
 use expr::VarUsage;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -15,7 +15,9 @@ pub struct TypeParam {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Type {
     Unit,
-    Var { ident: Ident },
+    Var {
+        ident: Ident,
+    },
     Quantified {
         quantifier: Quantifier,
         param: TypeParam,
@@ -27,18 +29,27 @@ pub enum Type {
         ret: Box<Type>,
         ret_phase: Phase,
     },
-    Pair { left: Box<Type>, right: Box<Type> },
+    Pair {
+        left: Box<Type>,
+        right: Box<Type>,
+    },
     App {
         constructor: Box<Type>,
         param: Box<Type>,
     },
-    Equiv { orig: Box<Type>, dest: Box<Type> },
+    Equiv {
+        orig: Box<Type>,
+        dest: Box<Type>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expr {
     Unit,
-    Var { usage: VarUsage, ident: Ident },
+    Var {
+        usage: VarUsage,
+        ident: Ident,
+    },
     ForAll {
         type_params: Vec<TypeParam>,
         body: Box<Expr>,
@@ -53,8 +64,14 @@ pub enum Expr {
         receiver: Box<Expr>,
         type_params: Vec<Type>,
     },
-    App { callee: Box<Expr>, arg: Box<Expr> },
-    Pair { left: Box<Expr>, right: Box<Expr> },
+    App {
+        callee: Box<Expr>,
+        arg: Box<Expr>,
+    },
+    Pair {
+        left: Box<Expr>,
+        right: Box<Expr>,
+    },
     Let {
         names: Vec<Ident>,
         val: Box<Expr>,
@@ -77,5 +94,7 @@ pub enum Expr {
         equivalence: Box<Expr>,
         body: Box<Expr>,
     },
-    ReflEquiv { ty: Type },
+    ReflEquiv {
+        ty: Type,
+    },
 }

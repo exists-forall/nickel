@@ -13,7 +13,9 @@ pub fn var(free: usize, index: usize) -> Type<Rc<String>> {
 pub fn quantified(quantifier: Quantifier, body: Type<Rc<String>>) -> Type<Rc<String>> {
     Type::from_content(TypeContent::Quantified {
         quantifier,
-        param: TypeParam { name: Rc::new("".to_owned()) },
+        param: TypeParam {
+            name: Rc::new("".to_owned()),
+        },
         body,
     })
 }
@@ -25,7 +27,9 @@ pub fn quantified_named(
 ) -> Type<Rc<String>> {
     Type::from_content(TypeContent::Quantified {
         quantifier,
-        param: TypeParam { name: Rc::new(name.to_owned()) },
+        param: TypeParam {
+            name: Rc::new(name.to_owned()),
+        },
         body,
     })
 }

@@ -23,8 +23,9 @@ pub fn var(usage: VarUsage, free_vars: usize, free_types: usize, index: usize) -
 pub fn forall(param_count: usize, body: Expr<Rc<String>>) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::ForAll {
         type_params: Rc::new(
-            repeat(TypeParam { name: Rc::new("".to_owned()) })
-                .take(param_count)
+            repeat(TypeParam {
+                name: Rc::new("".to_owned()),
+            }).take(param_count)
                 .collect(),
         ),
         body,
@@ -37,7 +38,9 @@ pub fn forall_named(params: &[&str], body: Expr<Rc<String>>) -> Expr<Rc<String>>
             params
                 .iter()
                 .cloned()
-                .map(|name| TypeParam { name: Rc::new(name.to_owned()) })
+                .map(|name| TypeParam {
+                    name: Rc::new(name.to_owned()),
+                })
                 .collect(),
         ),
         body,

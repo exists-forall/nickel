@@ -12,7 +12,10 @@ pub enum VarUsage {
 enum ExprDataInner<TAnnot, EAnnot, Name> {
     Unit,
 
-    Var { usage: VarUsage, index: usize },
+    Var {
+        usage: VarUsage,
+        index: usize,
+    },
 
     ForAll {
         type_params: Rc<Vec<TypeParam<Name>>>,
@@ -67,7 +70,9 @@ enum ExprDataInner<TAnnot, EAnnot, Name> {
         body: ExprData<TAnnot, EAnnot, Name>,
     },
 
-    ReflEquiv { ty: AnnotType<TAnnot, Name> },
+    ReflEquiv {
+        ty: AnnotType<TAnnot, Name>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -78,7 +83,10 @@ struct ExprData<TAnnot, EAnnot, Name> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExprContent<TAnnot, EAnnot, Name> {
-    Unit { free_vars: usize, free_types: usize },
+    Unit {
+        free_vars: usize,
+        free_types: usize,
+    },
 
     Var {
         usage: VarUsage,
@@ -173,16 +181,14 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
             ExprContent::Unit {
                 free_vars,
                 free_types,
-            } => {
-                AnnotExpr {
-                    free_vars,
-                    free_types,
-                    data: ExprData {
-                        annot,
-                        inner: Rc::new(ExprDataInner::Unit),
-                    },
-                }
-            }
+            } => AnnotExpr {
+                free_vars,
+                free_types,
+                data: ExprData {
+                    annot,
+                    inner: Rc::new(ExprDataInner::Unit),
+                },
+            },
 
             ExprContent::Var {
                 usage,
@@ -278,14 +284,12 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
 
             ExprContent::App { callee, arg } => {
                 assert_eq!(
-                    callee.free_vars,
-                    arg.free_vars,
+                    callee.free_vars, arg.free_vars,
                     "Free term variables do not match"
                 );
 
                 assert_eq!(
-                    callee.free_types,
-                    arg.free_types,
+                    callee.free_types, arg.free_types,
                     "Free type variables do not match",
                 );
 
@@ -304,14 +308,12 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
 
             ExprContent::Pair { left, right } => {
                 assert_eq!(
-                    left.free_vars,
-                    right.free_vars,
+                    left.free_vars, right.free_vars,
                     "Free term variables do not match",
                 );
 
                 assert_eq!(
-                    left.free_types,
-                    right.free_types,
+                    left.free_types, right.free_types,
                     "Free type variables do not match",
                 );
 
@@ -332,8 +334,7 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                 assert!(names.len() > 0, "Must bind at least one variable");
 
                 assert_eq!(
-                    val.free_types,
-                    body.free_types,
+                    val.free_types, body.free_types,
                     "Free type variables do not match",
                 );
 
@@ -434,14 +435,12 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                 body,
             } => {
                 assert_eq!(
-                    equivalence.free_types,
-                    body.free_types,
+                    equivalence.free_types, body.free_types,
                     "Free type variables do not match",
                 );
 
                 assert_eq!(
-                    equivalence.free_vars,
-                    body.free_vars,
+                    equivalence.free_vars, body.free_vars,
                     "Free term variables do not match",
                 );
 
@@ -466,205 +465,179 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                 }
             }
 
-            ExprContent::ReflEquiv { free_vars, ty } => {
-                AnnotExpr {
-                    free_vars,
-                    free_types: ty.free(),
-                    data: ExprData {
-                        annot,
-                        inner: Rc::new(ExprDataInner::ReflEquiv { ty }),
-                    },
-                }
-            }
+            ExprContent::ReflEquiv { free_vars, ty } => AnnotExpr {
+                free_vars,
+                free_types: ty.free(),
+                data: ExprData {
+                    annot,
+                    inner: Rc::new(ExprDataInner::ReflEquiv { ty }),
+                },
+            },
         }
     }
 
     pub fn to_content(&self) -> ExprContent<TAnnot, EAnnot, Name> {
         match &*self.data.inner {
-            &ExprDataInner::Unit => {
-                ExprContent::Unit {
-                    free_vars: self.free_vars,
-                    free_types: self.free_types,
-                }
-            }
+            &ExprDataInner::Unit => ExprContent::Unit {
+                free_vars: self.free_vars,
+                free_types: self.free_types,
+            },
 
-            &ExprDataInner::Var { usage, index } => {
-                ExprContent::Var {
-                    free_vars: self.free_vars,
-                    free_types: self.free_types,
-                    usage,
-                    index,
-                }
-            }
+            &ExprDataInner::Var { usage, index } => ExprContent::Var {
+                free_vars: self.free_vars,
+                free_types: self.free_types,
+                usage,
+                index,
+            },
 
             &ExprDataInner::ForAll {
                 ref type_params,
                 ref body,
-            } => {
-                ExprContent::ForAll {
-                    type_params: type_params.clone(),
-                    body: AnnotExpr {
-                        free_types: self.free_types + type_params.len(),
-                        free_vars: self.free_vars,
-                        data: body.clone(),
-                    },
-                }
-            }
+            } => ExprContent::ForAll {
+                type_params: type_params.clone(),
+                body: AnnotExpr {
+                    free_types: self.free_types + type_params.len(),
+                    free_vars: self.free_vars,
+                    data: body.clone(),
+                },
+            },
 
             &ExprDataInner::Func {
                 ref arg_name,
                 ref arg_type,
                 arg_phase,
                 ref body,
-            } => {
-                ExprContent::Func {
-                    arg_name: arg_name.clone(),
-                    arg_type: arg_type.clone(),
-                    arg_phase,
-                    body: AnnotExpr {
-                        free_types: self.free_types,
-                        free_vars: self.free_vars + 1,
-                        data: body.clone(),
-                    },
-                }
-            }
+            } => ExprContent::Func {
+                arg_name: arg_name.clone(),
+                arg_type: arg_type.clone(),
+                arg_phase,
+                body: AnnotExpr {
+                    free_types: self.free_types,
+                    free_vars: self.free_vars + 1,
+                    data: body.clone(),
+                },
+            },
 
             &ExprDataInner::Inst {
                 ref receiver,
                 ref type_params,
-            } => {
-                ExprContent::Inst {
-                    receiver: AnnotExpr {
-                        free_types: self.free_types,
-                        free_vars: self.free_vars,
-                        data: receiver.clone(),
-                    },
-                    type_params: type_params.clone(),
-                }
-            }
+            } => ExprContent::Inst {
+                receiver: AnnotExpr {
+                    free_types: self.free_types,
+                    free_vars: self.free_vars,
+                    data: receiver.clone(),
+                },
+                type_params: type_params.clone(),
+            },
 
             &ExprDataInner::App {
                 ref callee,
                 ref arg,
-            } => {
-                ExprContent::App {
-                    callee: AnnotExpr {
-                        free_types: self.free_types,
-                        free_vars: self.free_vars,
-                        data: callee.clone(),
-                    },
-                    arg: AnnotExpr {
-                        free_types: self.free_types,
-                        free_vars: self.free_vars,
-                        data: arg.clone(),
-                    },
-                }
-            }
+            } => ExprContent::App {
+                callee: AnnotExpr {
+                    free_types: self.free_types,
+                    free_vars: self.free_vars,
+                    data: callee.clone(),
+                },
+                arg: AnnotExpr {
+                    free_types: self.free_types,
+                    free_vars: self.free_vars,
+                    data: arg.clone(),
+                },
+            },
 
             &ExprDataInner::Pair {
                 ref left,
                 ref right,
-            } => {
-                ExprContent::Pair {
-                    left: AnnotExpr {
-                        free_types: self.free_types,
-                        free_vars: self.free_vars,
-                        data: left.clone(),
-                    },
-                    right: AnnotExpr {
-                        free_types: self.free_types,
-                        free_vars: self.free_vars,
-                        data: right.clone(),
-                    },
-                }
-            }
+            } => ExprContent::Pair {
+                left: AnnotExpr {
+                    free_types: self.free_types,
+                    free_vars: self.free_vars,
+                    data: left.clone(),
+                },
+                right: AnnotExpr {
+                    free_types: self.free_types,
+                    free_vars: self.free_vars,
+                    data: right.clone(),
+                },
+            },
 
             &ExprDataInner::Let {
                 ref names,
                 ref val,
                 ref body,
-            } => {
-                ExprContent::Let {
-                    names: names.clone(),
-                    val: AnnotExpr {
-                        free_types: self.free_types,
-                        free_vars: self.free_vars,
-                        data: val.clone(),
-                    },
-                    body: AnnotExpr {
-                        free_types: self.free_types,
-                        free_vars: self.free_vars + names.len(),
-                        data: body.clone(),
-                    },
-                }
-            }
+            } => ExprContent::Let {
+                names: names.clone(),
+                val: AnnotExpr {
+                    free_types: self.free_types,
+                    free_vars: self.free_vars,
+                    data: val.clone(),
+                },
+                body: AnnotExpr {
+                    free_types: self.free_types,
+                    free_vars: self.free_vars + names.len(),
+                    data: body.clone(),
+                },
+            },
 
             &ExprDataInner::LetExists {
                 ref type_names,
                 ref val_name,
                 ref val,
                 ref body,
-            } => {
-                ExprContent::LetExists {
-                    type_names: type_names.clone(),
-                    val_name: val_name.clone(),
-                    val: AnnotExpr {
-                        free_types: self.free_types,
-                        free_vars: self.free_vars,
-                        data: val.clone(),
-                    },
-                    body: AnnotExpr {
-                        free_types: self.free_types + type_names.len(),
-                        free_vars: self.free_vars + 1,
-                        data: body.clone(),
-                    },
-                }
-            }
+            } => ExprContent::LetExists {
+                type_names: type_names.clone(),
+                val_name: val_name.clone(),
+                val: AnnotExpr {
+                    free_types: self.free_types,
+                    free_vars: self.free_vars,
+                    data: val.clone(),
+                },
+                body: AnnotExpr {
+                    free_types: self.free_types + type_names.len(),
+                    free_vars: self.free_vars + 1,
+                    data: body.clone(),
+                },
+            },
 
             &ExprDataInner::MakeExists {
                 ref params,
                 ref type_body,
                 ref body,
-            } => {
-                ExprContent::MakeExists {
-                    params: params.clone(),
-                    type_body: type_body.clone(),
-                    body: AnnotExpr {
-                        free_vars: self.free_vars,
-                        free_types: self.free_types,
-                        data: body.clone(),
-                    },
-                }
-            }
+            } => ExprContent::MakeExists {
+                params: params.clone(),
+                type_body: type_body.clone(),
+                body: AnnotExpr {
+                    free_vars: self.free_vars,
+                    free_types: self.free_types,
+                    data: body.clone(),
+                },
+            },
 
             &ExprDataInner::Cast {
                 ref param,
                 ref type_body,
                 ref equivalence,
                 ref body,
-            } => {
-                ExprContent::Cast {
-                    param: param.clone(),
-                    type_body: type_body.clone(),
-                    equivalence: AnnotExpr {
-                        free_vars: self.free_vars,
-                        free_types: self.free_types,
-                        data: equivalence.clone(),
-                    },
-                    body: AnnotExpr {
-                        free_vars: self.free_vars,
-                        free_types: self.free_types,
-                        data: body.clone(),
-                    },
-                }
-            }
-
-            &ExprDataInner::ReflEquiv { ref ty } => {
-                ExprContent::ReflEquiv {
+            } => ExprContent::Cast {
+                param: param.clone(),
+                type_body: type_body.clone(),
+                equivalence: AnnotExpr {
                     free_vars: self.free_vars,
-                    ty: ty.clone(),
-                }
-            }
+                    free_types: self.free_types,
+                    data: equivalence.clone(),
+                },
+                body: AnnotExpr {
+                    free_vars: self.free_vars,
+                    free_types: self.free_types,
+                    data: body.clone(),
+                },
+            },
+
+            &ExprDataInner::ReflEquiv { ref ty } => ExprContent::ReflEquiv {
+                free_vars: self.free_vars,
+                ty: ty.clone(),
+            },
         }
     }
 }

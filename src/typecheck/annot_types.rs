@@ -1,6 +1,6 @@
 use types::*;
 use expr::*;
-use super::context::{Context, Annot, Usage};
+use super::context::{Annot, Context, Usage};
 use super::equiv::{subphase, subtype};
 
 #[derive(Clone, Debug)]
@@ -36,9 +36,18 @@ pub enum Error<Name> {
         in_expr: Expr<Name>,
         actual: Type<Name>,
     },
-    MovedTwice { context: Context<Name>, var: usize },
-    NotMoved { context: Context<Name>, var: usize },
-    IllegalCopy { context: Context<Name>, var: usize },
+    MovedTwice {
+        context: Context<Name>,
+        var: usize,
+    },
+    NotMoved {
+        context: Context<Name>,
+        var: usize,
+    },
+    IllegalCopy {
+        context: Context<Name>,
+        var: usize,
+    },
     ParameterCountMismatch {
         context: Context<Name>,
         in_expr: Expr<Name>,
@@ -107,18 +116,16 @@ pub fn annot_types<Name: Clone>(
         ExprContent::Unit {
             free_vars,
             free_types,
-        } => {
-            Ok(AnnotExpr::from_content_annot(
-                Annot {
-                    phase: Phase::Static,
-                    ty: Type::from_content(TypeContent::Unit { free: free_types }),
-                },
-                ExprContent::Unit {
-                    free_vars,
-                    free_types,
-                },
-            ))
-        }
+        } => Ok(AnnotExpr::from_content_annot(
+            Annot {
+                phase: Phase::Static,
+                ty: Type::from_content(TypeContent::Unit { free: free_types }),
+            },
+            ExprContent::Unit {
+                free_vars,
+                free_types,
+            },
+        )),
 
         ExprContent::Var {
             usage,
@@ -542,17 +549,15 @@ pub fn annot_types<Name: Clone>(
             }
         }
 
-        ExprContent::ReflEquiv { free_vars, ty } => {
-            Ok(AnnotExpr::from_content_annot(
-                Annot {
-                    phase: Phase::Static,
-                    ty: Type::from_content(TypeContent::Equiv {
-                        orig: ty.clone(),
-                        dest: ty.clone(),
-                    }),
-                },
-                ExprContent::ReflEquiv { free_vars, ty },
-            ))
-        }
+        ExprContent::ReflEquiv { free_vars, ty } => Ok(AnnotExpr::from_content_annot(
+            Annot {
+                phase: Phase::Static,
+                ty: Type::from_content(TypeContent::Equiv {
+                    orig: ty.clone(),
+                    dest: ty.clone(),
+                }),
+            },
+            ExprContent::ReflEquiv { free_vars, ty },
+        )),
     }
 }

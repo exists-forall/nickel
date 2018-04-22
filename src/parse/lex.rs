@@ -51,7 +51,9 @@ pub struct Lexer<Chars: Iterator> {
 
 impl<Chars: Iterator<Item = (usize, char)>> Lexer<Chars> {
     pub fn new(chars: Chars) -> Self {
-        Lexer { chars: chars.peekable() }
+        Lexer {
+            chars: chars.peekable(),
+        }
     }
 }
 
@@ -95,23 +97,19 @@ pub fn valid_name(s: &str) -> bool {
         None => {
             return false;
         }
-        Some(first_char) => {
-            match first_char {
-                'a'...'z' | 'A'...'Z' | '_' => {
-                    while let Some(c) = chars.next() {
-                        match c {
-                            'a'...'z' | 'A'...'Z' | '_' | '0'...'9' => {}
-                            _ => {
-                                return false;
-                            }
-                        }
+        Some(first_char) => match first_char {
+            'a'...'z' | 'A'...'Z' | '_' => while let Some(c) = chars.next() {
+                match c {
+                    'a'...'z' | 'A'...'Z' | '_' | '0'...'9' => {}
+                    _ => {
+                        return false;
                     }
                 }
-                _ => {
-                    return false;
-                }
+            },
+            _ => {
+                return false;
             }
-        }
+        },
     }
 
     // Passed basic syntactic test
@@ -199,20 +197,21 @@ impl<Chars: Iterator<Item = (usize, char)>> Iterator for Lexer<Chars> {
                 }
 
                 '0'...'9' => {
-                    let mut result: u64 = next_char.to_digit(10).expect(
-                        "Digit was already checked to lie in range 0...9",
-                    ) as u64;
+                    let mut result: u64 = next_char
+                        .to_digit(10)
+                        .expect("Digit was already checked to lie in range 0...9")
+                        as u64;
                     let mut final_loc = loc + 1;
                     while let Some(&(new_loc, digit @ '0'...'9')) = self.chars.peek() {
                         // This character is known to be part of the uint, so the end of the range
                         // is at least one byte after it.
                         final_loc = new_loc + 1;
                         if let Some(new_result) = result.checked_mul(10).and_then(|r| {
-                            r.checked_add(digit.to_digit(10).expect(
-                                "Digit was already checked to lie in range 0...9",
-                            ) as u64)
-                        })
-                        {
+                            r.checked_add(digit
+                                .to_digit(10)
+                                .expect("Digit was already checked to lie in range 0...9")
+                                as u64)
+                        }) {
                             self.chars.next(); // consume peeked character
                             result = new_result;
                         } else {

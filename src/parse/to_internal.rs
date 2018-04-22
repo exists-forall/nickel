@@ -3,7 +3,7 @@ use std::rc::Rc;
 use super::syntax;
 use types;
 use expr;
-use super::names::{Names, Error};
+use super::names::{Error, Names};
 
 #[derive(Clone, Debug)]
 pub struct Context {
@@ -22,7 +22,9 @@ fn convert_type_params(params: Vec<syntax::TypeParam>) -> Rc<Vec<types::TypePara
     Rc::new(
         params
             .into_iter()
-            .map(|param| types::TypeParam { name: Rc::new(param.ident.name) })
+            .map(|param| types::TypeParam {
+                name: Rc::new(param.ident.name),
+            })
             .collect(),
     )
 }
@@ -32,18 +34,14 @@ pub fn convert_type(
     ty: syntax::Type,
 ) -> Result<types::Type<Rc<String>>, Error> {
     match ty {
-        syntax::Type::Unit => {
-            Ok(types::Type::from_content(
-                types::TypeContent::Unit { free: type_names.index_count() },
-            ))
-        }
+        syntax::Type::Unit => Ok(types::Type::from_content(types::TypeContent::Unit {
+            free: type_names.index_count(),
+        })),
 
-        syntax::Type::Var { ident } => {
-            Ok(types::Type::from_content(types::TypeContent::Var {
-                free: type_names.index_count(),
-                index: type_names.get_index(&ident)?,
-            }))
-        }
+        syntax::Type::Var { ident } => Ok(types::Type::from_content(types::TypeContent::Var {
+            free: type_names.index_count(),
+            index: type_names.get_index(&ident)?,
+        })),
 
         syntax::Type::Quantified {
             quantifier,
@@ -56,7 +54,9 @@ pub fn convert_type(
 
             let result = types::Type::from_content(types::TypeContent::Quantified {
                 quantifier,
-                param: types::TypeParam { name: Rc::new(param.ident.name) },
+                param: types::TypeParam {
+                    name: Rc::new(param.ident.name),
+                },
                 body: convert_type(type_names, *body)?,
             });
 
@@ -106,12 +106,10 @@ pub fn convert_type(
 
 pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc<String>>, Error> {
     match ex {
-        syntax::Expr::Unit => {
-            Ok(expr::Expr::from_content(expr::ExprContent::Unit {
-                free_vars: ctx.var_names.index_count(),
-                free_types: ctx.type_names.index_count(),
-            }))
-        }
+        syntax::Expr::Unit => Ok(expr::Expr::from_content(expr::ExprContent::Unit {
+            free_vars: ctx.var_names.index_count(),
+            free_types: ctx.type_names.index_count(),
+        })),
 
         syntax::Expr::Var { usage, ident } => {
             Ok(expr::Expr::from_content(expr::ExprContent::Var {
@@ -174,12 +172,10 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             }))
         }
 
-        syntax::Expr::App { callee, arg } => {
-            Ok(expr::Expr::from_content(expr::ExprContent::App {
-                callee: convert_expr(ctx, *callee)?,
-                arg: convert_expr(ctx, *arg)?,
-            }))
-        }
+        syntax::Expr::App { callee, arg } => Ok(expr::Expr::from_content(expr::ExprContent::App {
+            callee: convert_expr(ctx, *callee)?,
+            arg: convert_expr(ctx, *arg)?,
+        })),
 
         syntax::Expr::Pair { left, right } => {
             Ok(expr::Expr::from_content(expr::ExprContent::Pair {
@@ -252,10 +248,8 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             let mut converted_params = Vec::with_capacity(params.len());
             for (ident, ty) in params {
                 param_idents.push(ident.clone());
-                converted_params.push((
-                    Rc::new(ident.name),
-                    convert_type(&mut ctx.type_names, ty)?,
-                ));
+                converted_params
+                    .push((Rc::new(ident.name), convert_type(&mut ctx.type_names, ty)?));
             }
 
             ctx.type_names.push_scope();
@@ -284,7 +278,9 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             ctx.type_names.pop_scope();
 
             Ok(expr::Expr::from_content(expr::ExprContent::Cast {
-                param: types::TypeParam { name: Rc::new(param.ident.name) },
+                param: types::TypeParam {
+                    name: Rc::new(param.ident.name),
+                },
                 type_body: converted_type_body,
                 equivalence: convert_expr(ctx, *equivalence)?,
                 body: convert_expr(ctx, *body)?,

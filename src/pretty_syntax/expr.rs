@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use pretty_trait::{Pretty, JoinExt, Group, Sep, Conditional, delimited, block, Indent, Seq};
+use pretty_trait::{block, delimited, Conditional, Group, Indent, JoinExt, Pretty, Sep, Seq};
 
 use super::super::expr::*;
 use pretty_syntax::types;
@@ -40,31 +40,25 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             free_vars: _,
             free_types: _,
             index,
-        } => {
-            match usage {
-                VarUsage::Move => {
-                    Box::new(Group::new(
-                        "move".join(Sep(1)).join(var_names.get_name(index)),
-                    ))
-                }
-                VarUsage::Copy => Box::new(var_names.get_name(index)),
-            }
-        }
+        } => match usage {
+            VarUsage::Move => Box::new(Group::new(
+                "move".join(Sep(1)).join(var_names.get_name(index)),
+            )),
+            VarUsage::Copy => Box::new(var_names.get_name(index)),
+        },
 
         ExprContent::ForAll { type_params, body } => {
             type_names.push_scope();
 
-            let type_params_pretty = Seq(
-                type_params
-                    .iter()
-                    .map(|param| {
-                        // This is a mutating operation.
-                        // Names are added here!
-                        let name = type_names.add_name(param.name.clone().into());
-                        Sep(1).join(Group::new("{".join(block(name)).join("}")))
-                    })
-                    .collect(),
-            );
+            let type_params_pretty = Seq(type_params
+                .iter()
+                .map(|param| {
+                    // This is a mutating operation.
+                    // Names are added here!
+                    let name = type_names.add_name(param.name.clone().into());
+                    Sep(1).join(Group::new("{".join(block(name)).join("}")))
+                })
+                .collect());
 
             let body_pretty = to_pretty(var_names, type_names, Place::ForAllBody, body);
 
@@ -75,10 +69,13 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 .join(body_pretty);
 
             match place {
-                Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::LetBody | Place::MakeExistsBody | Place::CastBody => Box::new(Group::new(
-                    content_pretty,
-                )),
+                Place::Root
+                | Place::AbsBody
+                | Place::PairLeft
+                | Place::PairRight
+                | Place::LetBody
+                | Place::MakeExistsBody
+                | Place::CastBody => Box::new(Group::new(content_pretty)),
 
                 Place::ForAllBody => Box::new(content_pretty),
 
@@ -103,27 +100,33 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             };
 
             let arg_pretty = Group::new(
-                "("
-                    .join(block(phased_arg_pretty.join(" :").join(Sep(1)).join(
-                        arg_type_pretty,
-                    ))).join(")"),
+                "(".join(block(
+                        phased_arg_pretty
+                            .join(" :")
+                            .join(Sep(1))
+                            .join(arg_type_pretty),
+                    )).join(")"),
             );
 
             let body_pretty = to_pretty(var_names, type_names, Place::AbsBody, body);
 
             var_names.pop_scope();
 
-            let content_pretty = "func".join(Sep(1)).join(arg_pretty).join(" ->").join(
-                Indent(
-                    Sep(1).join(body_pretty),
-                ),
-            );
+            let content_pretty = "func"
+                .join(Sep(1))
+                .join(arg_pretty)
+                .join(" ->")
+                .join(Indent(Sep(1).join(body_pretty)));
 
             match place {
-                Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::LetBody | Place::MakeExistsBody | Place::ForAllBody | Place::CastBody => {
-                    Box::new(Group::new(content_pretty))
-                }
+                Place::Root
+                | Place::AbsBody
+                | Place::PairLeft
+                | Place::PairRight
+                | Place::LetBody
+                | Place::MakeExistsBody
+                | Place::ForAllBody
+                | Place::CastBody => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
             }
@@ -135,21 +138,16 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
         } => {
             let receiver_pretty = to_pretty(var_names, type_names, Place::InstReceiver, receiver);
 
-            let params_pretty = Seq(
-                type_params
-                    .iter()
-                    .map(|param| {
-                        Sep(0).join(Group::new(
-                            "{"
-                                .join(block(types::to_pretty(
-                                    type_names,
-                                    types::Place::Root,
-                                    param.clone(),
-                                ))).join("}"),
-                        ))
-                    })
-                    .collect(),
-            );
+            let params_pretty = Seq(type_params
+                .iter()
+                .map(|param| {
+                    Sep(0).join(Group::new("{".join(block(types::to_pretty(
+                            type_names,
+                            types::Place::Root,
+                            param.clone(),
+                        ))).join("}")))
+                })
+                .collect());
 
             let content_pretty = receiver_pretty.join(params_pretty);
 
@@ -182,13 +180,10 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                     content_pretty.join(Conditional::OnlyBroken(",")),
                 )),
 
-                _ => {
-                    Box::new(Group::new(
-                        "("
-                            .join(block(content_pretty.join(Conditional::OnlyBroken(","))))
-                            .join(")"),
-                    ))
-                }
+                _ => Box::new(Group::new(
+                    "(".join(block(content_pretty.join(Conditional::OnlyBroken(","))))
+                        .join(")"),
+                )),
             }
         }
 
@@ -228,12 +223,13 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::LetBody => Box::new(content_pretty),
 
-                Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::MakeExistsBody | Place::ForAllBody | Place::CastBody => Box::new(
-                    Group::new(
-                        content_pretty,
-                    ),
-                ),
+                Place::Root
+                | Place::AbsBody
+                | Place::PairLeft
+                | Place::PairRight
+                | Place::MakeExistsBody
+                | Place::ForAllBody
+                | Place::CastBody => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new("(".join(block(content_pretty)).join(")")),
             }
@@ -287,12 +283,13 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::LetBody => Box::new(content_pretty),
 
-                Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::MakeExistsBody | Place::ForAllBody | Place::CastBody => Box::new(
-                    Group::new(
-                        content_pretty,
-                    ),
-                ),
+                Place::Root
+                | Place::AbsBody
+                | Place::PairLeft
+                | Place::PairRight
+                | Place::MakeExistsBody
+                | Place::ForAllBody
+                | Place::CastBody => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new("(".join(block(content_pretty)).join(")")),
             }
@@ -305,27 +302,25 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
         } => {
             let param_types_pretty = params
                 .iter()
-                .map(|&(_, ref ty)| {
-                    types::to_pretty(type_names, types::Place::Root, ty.clone())
-                })
+                .map(|&(_, ref ty)| types::to_pretty(type_names, types::Place::Root, ty.clone()))
                 .collect::<Vec<_>>();
 
             type_names.push_scope();
 
             let params_pretty = Group::new(delimited(
                 &Sep(1),
-                params.iter().zip(param_types_pretty).map(
-                    |(param, ty_pretty)| {
+                params
+                    .iter()
+                    .zip(param_types_pretty)
+                    .map(|(param, ty_pretty)| {
                         // This is a mutating operation
                         // Names are added here!
                         let name_pretty = type_names.add_name(param.0.clone().into());
                         Group::new(
-                            "{"
-                                .join(block(name_pretty.join(" =").join(Sep(1)).join(ty_pretty)))
+                            "{".join(block(name_pretty.join(" =").join(Sep(1)).join(ty_pretty)))
                                 .join("}"),
                         )
-                    },
-                ),
+                    }),
             ));
 
             let type_body_pretty = types::to_pretty(type_names, types::Place::Root, type_body);
@@ -348,10 +343,13 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::MakeExistsBody => Box::new(content_pretty),
 
-                Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::LetBody | Place::ForAllBody | Place::CastBody => Box::new(
-                    Group::new(content_pretty),
-                ),
+                Place::Root
+                | Place::AbsBody
+                | Place::PairLeft
+                | Place::PairRight
+                | Place::LetBody
+                | Place::ForAllBody
+                | Place::CastBody => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
             }
@@ -378,13 +376,12 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
 
             let body_pretty = to_pretty(var_names, type_names, Place::CastBody, body.clone());
 
-            let head_pretty = Group::new("cast".join(Indent(Sep(1).join(Group::new(
-                param_pretty.join(Sep(1)).join(type_body_pretty),
-            )))));
+            let head_pretty = Group::new("cast".join(Indent(
+                Sep(1).join(Group::new(param_pretty.join(Sep(1)).join(type_body_pretty))),
+            )));
 
-            let by_pretty = Group::new("by".join(
-                Indent(Sep(1).join(Group::new(equivalence_pretty))),
-            ));
+            let by_pretty =
+                Group::new("by".join(Indent(Sep(1).join(Group::new(equivalence_pretty)))));
 
             let of_pretty = "of".join(Sep(1)).join(body_pretty);
 
@@ -392,10 +389,14 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 Group::new(head_pretty.join(Sep(1)).join(by_pretty)).join(of_pretty);
 
             match place {
-                Place::Root | Place::AbsBody | Place::PairLeft | Place::PairRight |
-                Place::LetBody | Place::MakeExistsBody | Place::ForAllBody | Place::CastBody => {
-                    Box::new(Group::new(content_pretty))
-                }
+                Place::Root
+                | Place::AbsBody
+                | Place::PairLeft
+                | Place::PairRight
+                | Place::LetBody
+                | Place::MakeExistsBody
+                | Place::ForAllBody
+                | Place::CastBody => Box::new(Group::new(content_pretty)),
 
                 _ => Box::new(Group::new("(".join(block(content_pretty)).join(")"))),
             }
