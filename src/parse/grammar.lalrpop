@@ -54,13 +54,13 @@ Quantifier: types::Quantifier = {
 };
 
 PhasedArg: (types::Phase, syntax::Type) = {
-    <arg: AtomicType> => (types::Phase::Dynamic, arg),
+    <arg: AppType> => (types::Phase::Dynamic, arg),
     "(" "static" <arg: Type> ")" => (types::Phase::Static, arg),
 };
 
 PhasedRet: (types::Phase, syntax::Type) = {
-    <ret: AtomicType> => (types::Phase::Dynamic, ret),
-    "static" <ret: AtomicType> => (types::Phase::Static, ret),
+    <ret: AppType> => (types::Phase::Dynamic, ret),
+    "static" <ret: AppType> => (types::Phase::Static, ret),
 };
 
 QuantifiedType: syntax::Type = {

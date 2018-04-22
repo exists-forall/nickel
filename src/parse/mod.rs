@@ -291,6 +291,44 @@ mod test {
             })
         );
 
+        assert_eq!(
+            type_("forall {T} T -> F T"),
+            Ok(syntax::Type::Quantified {
+                quantifier: types::Quantifier::ForAll,
+                param: syntax::TypeParam {
+                    ident: mk_ident("T"),
+                },
+                body: Box::new(syntax::Type::Func {
+                    arg: Box::new(ty_var("T")),
+                    arg_phase: types::Phase::Dynamic,
+                    ret: Box::new(syntax::Type::App {
+                        constructor: Box::new(ty_var("F")),
+                        param: Box::new(ty_var("T")),
+                    }),
+                    ret_phase: types::Phase::Dynamic,
+                }),
+            })
+        );
+
+        assert_eq!(
+            type_("forall {T} F T -> T"),
+            Ok(syntax::Type::Quantified {
+                quantifier: types::Quantifier::ForAll,
+                param: syntax::TypeParam {
+                    ident: mk_ident("T"),
+                },
+                body: Box::new(syntax::Type::Func {
+                    arg: Box::new(syntax::Type::App {
+                        constructor: Box::new(ty_var("F")),
+                        param: Box::new(ty_var("T")),
+                    }),
+                    arg_phase: types::Phase::Dynamic,
+                    ret: Box::new(ty_var("T")),
+                    ret_phase: types::Phase::Dynamic,
+                }),
+            })
+        );
+
         // Full example:
 
         assert_eq!(
@@ -524,20 +562,26 @@ mod test {
         );
     }
 
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    enum ConvError {
+        Parse(ParseError<usize, lex::Token, lex::Error>),
+        Names(names::Error),
+    }
+
     // Parse an expression and convert it to an internal representation
     fn conv(
         free_vars: &[&str],
         free_types: &[&str],
         s: &str,
-    ) -> Result<expr::Expr<Rc<String>>, ()> {
+    ) -> Result<expr::Expr<Rc<String>>, ConvError> {
         let mut var_names = names::Names::new();
         for var in free_vars {
-            var_names.add_name(mk_ident(var)).map_err(|_| ())?;
+            var_names.add_name(mk_ident(var)).map_err(ConvError::Names)?;
         }
 
         let mut type_names = names::Names::new();
         for ty in free_types {
-            type_names.add_name(mk_ident(ty)).map_err(|_| ())?;
+            type_names.add_name(mk_ident(ty)).map_err(ConvError::Names)?;
         }
 
         let result = to_internal::convert_expr(
@@ -545,8 +589,8 @@ mod test {
                 var_names,
                 type_names,
             },
-            expr(s).map_err(|_| ())?,
-        ).map_err(|_| ())?;
+            expr(s).map_err(ConvError::Parse)?,
+        ).map_err(ConvError::Names)?;
 
         assert_eq!(result.free_vars(), free_vars.len());
         assert_eq!(result.free_types(), free_types.len());
