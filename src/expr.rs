@@ -446,7 +446,7 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
 
                 assert_eq!(
                     type_body.free(),
-                    body.free_vars + 1,
+                    body.free_types + 1,
                     "Free type variables do not match"
                 );
 

@@ -196,3 +196,27 @@ pub fn make_exists_named(
         body,
     })
 }
+
+pub fn cast(
+    type_body: Type<Rc<String>>,
+    equivalence: Expr<Rc<String>>,
+    body: Expr<Rc<String>>,
+) -> Expr<Rc<String>> {
+    cast_named("", type_body, equivalence, body)
+}
+
+pub fn cast_named(
+    param_name: &str,
+    type_body: Type<Rc<String>>,
+    equivalence: Expr<Rc<String>>,
+    body: Expr<Rc<String>>,
+) -> Expr<Rc<String>> {
+    Expr::from_content(ExprContent::Cast {
+        param: TypeParam {
+            name: Rc::new(param_name.to_owned()),
+        },
+        type_body,
+        equivalence,
+        body,
+    })
+}

@@ -783,5 +783,36 @@ mod test {
                 ex::pair(ex::var(Usage::Move, 2, 2, 0), ex::var(Usage::Move, 2, 2, 1),),
             ))
         );
+
+        assert_eq!(
+            conv(
+                &["foo"],
+                &["Foo", "F"],
+                "func (wrap : forall {T} T -> F T) -> wrap{Foo}(foo)"
+            ),
+            Ok(ex::func_named(
+                "wrap",
+                ty::func_forall_named(&["T"], ty::var(3, 2), ty::app(ty::var(3, 1), ty::var(3, 2))),
+                ex::app_forall(
+                    ex::var(Usage::Copy, 2, 2, 1),
+                    &[ty::var(2, 0)],
+                    ex::var(Usage::Copy, 2, 2, 0)
+                )
+            ))
+        );
+
+        assert_eq!(
+            conv(
+                &["foo", "token"],
+                &["Foo"],
+                "cast {T} (Foo, T) by token of foo"
+            ),
+            Ok(ex::cast_named(
+                "T",
+                ty::pair(ty::var(2, 0), ty::var(2, 1)),
+                ex::var(Usage::Copy, 2, 1, 1),
+                ex::var(Usage::Copy, 2, 1, 0)
+            ))
+        );
     }
 }
