@@ -64,12 +64,12 @@ mod test {
         assert!(ws("").is_ok());
         assert!(ws("  \t \n    \r \x0B  \n \n \t").is_ok());
 
-        assert!(ws("// a comment").is_ok());
-        assert!(ws("   // a comment \n \t \n // another comment  \n   ").is_ok());
+        assert!(ws("-- a comment").is_ok());
+        assert!(ws("   -- a comment \n \t \n -- another comment  \n   ").is_ok());
 
         assert!(ws(" - ").is_err());
         assert!(ws(" hello ").is_err());
-        assert!(ws(" // a comment \n not a comment").is_err());
+        assert!(ws(" -- a comment \n not a comment").is_err());
     }
 
     #[test]
@@ -102,7 +102,7 @@ mod test {
         );
 
         assert_eq!(
-            ident("foo // comment 1 \n # // comment 2 \n 42"),
+            ident("foo -- comment 1 \n # -- comment 2 \n 42"),
             Ok(Ident {
                 name: "foo".to_owned(),
                 collision_id: 42,
@@ -127,7 +127,7 @@ mod test {
     #[test]
     fn test_type() {
         assert_eq!(
-            type_("( // embedded whitespace \n )"),
+            type_("( -- embedded whitespace \n )"),
             Ok(syntax::Type::Unit)
         );
 
@@ -369,7 +369,7 @@ mod test {
     #[test]
     fn test_expr() {
         assert_eq!(
-            expr("( // embedded whitespace \n )"),
+            expr("( -- embedded whitespace \n )"),
             Ok(syntax::Expr::Unit),
         );
 

@@ -134,22 +134,9 @@ impl<Chars: Iterator<Item = (usize, char)>> Iterator for Lexer<Chars> {
     type Item = Result<(usize, Token, usize), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some((loc, next_char)) = self.chars.next() {
+        'outer: while let Some((loc, next_char)) = self.chars.next() {
             match next_char {
                 ' ' | '\t' | '\n' | '\r' | '\x0B' | '\x0C' => {}
-
-                '/' => {
-                    if let Some((_, '/')) = self.chars.next() {
-                        // Consume comment
-                        while let Some((_, comment_char)) = self.chars.next() {
-                            if comment_char == '\n' {
-                                break;
-                            }
-                        }
-                    } else {
-                        return Some(Err(Error::Char(loc + 1, '/')));
-                    }
-                }
 
                 'a'...'z' | 'A'...'Z' | '_' => {
                     let mut name = String::new();
@@ -230,10 +217,18 @@ impl<Chars: Iterator<Item = (usize, char)>> Iterator for Lexer<Chars> {
                         ':' => Token::Colon,
                         '*' => Token::Star,
                         '-' => {
-                            if let Some((_, '>')) = self.chars.next() {
-                                Token::Arrow
-                            } else {
-                                return Some(Err(Error::Char(loc, '-')));
+                            match self.chars.next() {
+                                Some((_, '>')) => Token::Arrow,
+                                Some((_, '-')) => {
+                                    // comment
+                                    while let Some((_, comment_char)) = self.chars.next() {
+                                        if comment_char == '\n' {
+                                            continue 'outer;
+                                        }
+                                    }
+                                    return None;
+                                }
+                                _ => return Some(Err(Error::Char(loc, '-'))),
                             }
                         }
 
