@@ -159,5 +159,22 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 _ => Box::new("(".join(block(content_pretty)).join(")")),
             }
         }
+
+        TypeContent::Size { ty } => {
+            let ty_pretty = to_pretty(names, Place::AppParam, ty);
+
+            let content_pretty = "size".join(Indent(Sep(1).join(ty_pretty)));
+
+            match place {
+                | Place::Root
+                | Place::QuantifierBody
+                | Place::FuncArg
+                | Place::FuncRet
+                | Place::PairLeft
+                | Place::PairRight => Box::new(Group::new(content_pretty)),
+
+                _ => Box::new("(".join(block(content_pretty).join(")"))),
+            }
+        }
     }
 }

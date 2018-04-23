@@ -46,6 +46,9 @@ enum TypeDataInner<TAnnot, Name> {
         orig: TypeData<TAnnot, Name>,
         dest: TypeData<TAnnot, Name>,
     },
+    Size {
+        ty: TypeData<TAnnot, Name>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -86,6 +89,9 @@ pub enum TypeContent<TAnnot, Name> {
     Equiv {
         orig: AnnotType<TAnnot, Name>,
         dest: AnnotType<TAnnot, Name>,
+    },
+    Size {
+        ty: AnnotType<TAnnot, Name>,
     },
 }
 
@@ -215,6 +221,15 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                     },
                 }
             }
+
+            TypeContent::Size { ty } => AnnotType {
+                free: ty.free,
+                data: TypeData {
+                    annot,
+                    max_index: ty.data.max_index,
+                    inner: Rc::new(TypeDataInner::Size { ty: ty.data }),
+                },
+            },
         }
     }
 
@@ -296,6 +311,13 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                     data: dest.clone(),
                 },
             },
+
+            &TypeDataInner::Size { ref ty } => TypeContent::Size {
+                ty: AnnotType {
+                    free: self.free,
+                    data: ty.clone(),
+                },
+            },
         }
     }
 
@@ -366,6 +388,10 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
             TypeContent::Equiv { orig, dest } => TypeContent::Equiv {
                 orig: orig.increment_above(index, inc_by),
                 dest: dest.increment_above(index, inc_by),
+            },
+
+            TypeContent::Size { ty } => TypeContent::Size {
+                ty: ty.increment_above(index, inc_by),
             },
         };
 
@@ -485,6 +511,13 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 TypeContent::Equiv {
                     orig: orig.subst_inner(start_index, replacements),
                     dest: dest.subst_inner(start_index, replacements),
+                },
+            ),
+
+            TypeContent::Size { ty } => AnnotType::from_content_annot(
+                self.annot(),
+                TypeContent::Size {
+                    ty: ty.subst_inner(start_index, replacements),
                 },
             ),
         }

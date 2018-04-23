@@ -87,6 +87,8 @@ pub fn equiv<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
             },
         ) => equiv(orig1, orig2) && equiv(dest1, dest2),
 
+        (TypeContent::Size { ty: ty1 }, TypeContent::Size { ty: ty2 }) => equiv(ty1, ty2),
+
         (_, _) => false,
     }
 }
@@ -171,6 +173,10 @@ pub fn subtype<TAnnot1: Clone, TAnnot2: Clone, Name1: Clone, Name2: Clone>(
         (TypeContent::App { .. }, TypeContent::App { .. }) => equiv(child, parent),
 
         (TypeContent::Equiv { .. }, TypeContent::Equiv { .. }) => equiv(child, parent),
+
+        (TypeContent::Size { ty: child_ty }, TypeContent::Size { ty: parent_ty }) => {
+            equiv(child_ty, parent_ty)
+        }
 
         (_, _) => false,
     }
