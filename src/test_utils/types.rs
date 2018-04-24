@@ -94,3 +94,7 @@ pub fn app(constructor: Type<Rc<String>>, param: Type<Rc<String>>) -> Type<Rc<St
 pub fn equiv_ty(orig: Type<Rc<String>>, dest: Type<Rc<String>>) -> Type<Rc<String>> {
     Type::from_content(TypeContent::Equiv { orig, dest })
 }
+
+pub fn size(ty: Type<Rc<String>>) -> Type<Rc<String>> {
+    Type::from_content(TypeContent::Size { ty })
+}

@@ -329,6 +329,30 @@ mod test {
             })
         );
 
+        assert_eq!(
+            type_("size T"),
+            Ok(syntax::Type::Size {
+                ty: Box::new(ty_var("T")),
+            })
+        );
+
+        assert_eq!(
+            type_("size T -> static size (F T)"),
+            Ok(syntax::Type::Func {
+                arg: Box::new(syntax::Type::Size {
+                    ty: Box::new(ty_var("T")),
+                }),
+                arg_phase: types::Phase::Dynamic,
+                ret: Box::new(syntax::Type::Size {
+                    ty: Box::new(syntax::Type::App {
+                        constructor: Box::new(ty_var("F")),
+                        param: Box::new(ty_var("T")),
+                    }),
+                }),
+                ret_phase: types::Phase::Static,
+            })
+        );
+
         // Full example:
 
         assert_eq!(
@@ -638,6 +662,8 @@ mod test {
             conv_ty(&["A", "B"], "equiv A B"),
             Ok(equiv_ty(var(2, 0), var(2, 1)))
         );
+
+        assert_eq!(conv_ty(&["T", "U", "V"], "size U"), Ok(size(var(3, 1))));
     }
 
     // Parse an expression and convert it to an internal representation
