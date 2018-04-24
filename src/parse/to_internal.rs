@@ -101,6 +101,10 @@ pub fn convert_type(
                 dest: convert_type(type_names, *dest)?,
             }))
         }
+
+        syntax::Type::Size { ty } => Ok(types::Type::from_content(types::TypeContent::Size {
+            ty: convert_type(type_names, *ty)?,
+        })),
     }
 }
 

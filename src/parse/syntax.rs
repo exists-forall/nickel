@@ -41,6 +41,9 @@ pub enum Type {
         orig: Box<Type>,
         dest: Box<Type>,
     },
+    Size {
+        ty: Box<Type>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

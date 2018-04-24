@@ -46,6 +46,12 @@ AppType: syntax::Type = {
             dest: Box::new(dest),
         }
     },
+
+    "size" <ty: AtomicType> => {
+        syntax::Type::Size {
+            ty: Box::new(ty),
+        }
+    }
 };
 
 Quantifier: types::Quantifier = {
@@ -260,6 +266,7 @@ extern {
         "forall" => lex::Token::KeyForall,
         "exists" => lex::Token::KeyExists,
         "equiv" => lex::Token::KeyEquiv,
+        "size" => lex::Token::KeySize,
         "static" => lex::Token::KeyStatic,
 
         "#" => lex::Token::NumSign,

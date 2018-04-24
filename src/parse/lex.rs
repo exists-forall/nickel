@@ -28,6 +28,7 @@ pub enum Token {
     KeyForall,
     KeyExists,
     KeyEquiv,
+    KeySize,
     KeyStatic,
 
     NumSign,
@@ -81,6 +82,7 @@ lazy_static! {
         keywords.insert("forall", Token::KeyForall);
         keywords.insert("exists", Token::KeyExists);
         keywords.insert("equiv", Token::KeyEquiv);
+        keywords.insert("size", Token::KeySize);
         keywords.insert("static", Token::KeyStatic);
 
         keywords
