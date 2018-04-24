@@ -129,7 +129,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::AppConstructor => Box::new(content_pretty),
 
-                Place::Root
+                | Place::Root
                 | Place::QuantifierBody
                 | Place::FuncArg
                 | Place::FuncRet
@@ -149,7 +149,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             ));
 
             match place {
-                Place::Root
+                | Place::Root
                 | Place::QuantifierBody
                 | Place::FuncArg
                 | Place::FuncRet

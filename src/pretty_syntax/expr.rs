@@ -119,7 +119,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 .join(Indent(Sep(1).join(body_pretty)));
 
             match place {
-                Place::Root
+                | Place::Root
                 | Place::AbsBody
                 | Place::PairLeft
                 | Place::PairRight
@@ -223,7 +223,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::LetBody => Box::new(content_pretty),
 
-                Place::Root
+                | Place::Root
                 | Place::AbsBody
                 | Place::PairLeft
                 | Place::PairRight
@@ -283,7 +283,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::LetBody => Box::new(content_pretty),
 
-                Place::Root
+                | Place::Root
                 | Place::AbsBody
                 | Place::PairLeft
                 | Place::PairRight
@@ -343,7 +343,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             match place {
                 Place::MakeExistsBody => Box::new(content_pretty),
 
-                Place::Root
+                | Place::Root
                 | Place::AbsBody
                 | Place::PairLeft
                 | Place::PairRight
@@ -389,7 +389,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
                 Group::new(head_pretty.join(Sep(1)).join(by_pretty)).join(of_pretty);
 
             match place {
-                Place::Root
+                | Place::Root
                 | Place::AbsBody
                 | Place::PairLeft
                 | Place::PairRight
