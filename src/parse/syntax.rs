@@ -1,5 +1,5 @@
 use types::{Phase, Quantifier};
-use expr::VarUsage;
+use expr::{Intrinsic, VarUsage};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Ident {
@@ -97,7 +97,7 @@ pub enum Expr {
         equivalence: Box<Expr>,
         body: Box<Expr>,
     },
-    ReflEquiv {
-        ty: Type,
+    Intrinsic {
+        intrinsic: Intrinsic,
     },
 }

@@ -94,7 +94,28 @@ fn check_moved_in_scope<Name: Clone>(ctx: &Context<Name>) -> Result<(), Error<Na
     Ok(())
 }
 
-pub fn annot_types<Name: Clone>(
+fn intrinsic_signature<Name: Clone + Default>(intrinsic: Intrinsic) -> Type<Name> {
+    // NOTE: It may be better to cache this the first time it's computed
+
+    // NOTE: It may be worthwhile to create a tool which permits intrinsic signatures to be declared
+    // in Nickel syntax, as opposed to having to directly construct their syntax trees.  This could
+    // work either through a build script or by parsing the signatures dynamically at startup-time.
+
+    match intrinsic {
+        Intrinsic::ReflEquiv => Type::from_content(TypeContent::Quantified {
+            quantifier: Quantifier::ForAll,
+            param: TypeParam {
+                name: Name::default(),
+            },
+            body: Type::from_content(TypeContent::Equiv {
+                orig: Type::from_content(TypeContent::Var { free: 1, index: 0 }),
+                dest: Type::from_content(TypeContent::Var { free: 1, index: 0 }),
+            }),
+        }),
+    }
+}
+
+pub fn annot_types<Name: Clone + Default>(
     ctx: &mut Context<Name>,
     ex: Expr<Name>,
 ) -> Result<AnnotExpr<(), Annot<Name>, Name>, Error<Name>> {
@@ -549,15 +570,20 @@ pub fn annot_types<Name: Clone>(
             }
         }
 
-        ExprContent::ReflEquiv { free_vars, ty } => Ok(AnnotExpr::from_content_annot(
+        ExprContent::Intrinsic {
+            free_vars,
+            free_types,
+            intrinsic,
+        } => Ok(AnnotExpr::from_content_annot(
             Annot {
                 phase: Phase::Static,
-                ty: Type::from_content(TypeContent::Equiv {
-                    orig: ty.clone(),
-                    dest: ty.clone(),
-                }),
+                ty: intrinsic_signature(intrinsic).accomodate_free(free_types),
             },
-            ExprContent::ReflEquiv { free_vars, ty },
+            ExprContent::Intrinsic {
+                free_vars,
+                free_types,
+                intrinsic,
+            },
         )),
     }
 }

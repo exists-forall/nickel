@@ -402,10 +402,15 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             }
         }
 
-        ExprContent::ReflEquiv { free_vars: _, ty } => {
-            let ty_pretty = types::to_pretty(type_names, types::Place::Root, ty.clone());
-
-            Box::new(Group::new("refl_equiv{".join(block(ty_pretty)).join("}")))
+        ExprContent::Intrinsic {
+            free_vars: _,
+            free_types: _,
+            intrinsic,
+        } => {
+            let name = match intrinsic {
+                Intrinsic::ReflEquiv => "refl_equiv",
+            };
+            Box::new(name)
         }
     }
 }

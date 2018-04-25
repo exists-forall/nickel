@@ -8,6 +8,11 @@ pub enum VarUsage {
     Copy,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Intrinsic {
+    ReflEquiv,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum ExprDataInner<TAnnot, EAnnot, Name> {
     Unit,
@@ -70,8 +75,8 @@ enum ExprDataInner<TAnnot, EAnnot, Name> {
         body: ExprData<TAnnot, EAnnot, Name>,
     },
 
-    ReflEquiv {
-        ty: AnnotType<TAnnot, Name>,
+    Intrinsic {
+        intrinsic: Intrinsic,
     },
 }
 
@@ -148,9 +153,10 @@ pub enum ExprContent<TAnnot, EAnnot, Name> {
         body: AnnotExpr<TAnnot, EAnnot, Name>,
     },
 
-    ReflEquiv {
+    Intrinsic {
+        intrinsic: Intrinsic,
         free_vars: usize,
-        ty: AnnotType<TAnnot, Name>,
+        free_types: usize,
     },
 }
 
@@ -465,12 +471,16 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                 }
             }
 
-            ExprContent::ReflEquiv { free_vars, ty } => AnnotExpr {
+            ExprContent::Intrinsic {
+                intrinsic,
                 free_vars,
-                free_types: ty.free(),
+                free_types,
+            } => AnnotExpr {
+                free_vars,
+                free_types,
                 data: ExprData {
                     annot,
-                    inner: Rc::new(ExprDataInner::ReflEquiv { ty }),
+                    inner: Rc::new(ExprDataInner::Intrinsic { intrinsic }),
                 },
             },
         }
@@ -634,9 +644,10 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
                 },
             },
 
-            &ExprDataInner::ReflEquiv { ref ty } => ExprContent::ReflEquiv {
+            &ExprDataInner::Intrinsic { intrinsic } => ExprContent::Intrinsic {
                 free_vars: self.free_vars,
-                ty: ty.clone(),
+                free_types: self.free_types,
+                intrinsic,
             },
         }
     }

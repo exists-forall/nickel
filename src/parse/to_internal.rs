@@ -291,10 +291,11 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             }))
         }
 
-        syntax::Expr::ReflEquiv { ty } => {
-            Ok(expr::Expr::from_content(expr::ExprContent::ReflEquiv {
+        syntax::Expr::Intrinsic { intrinsic } => {
+            Ok(expr::Expr::from_content(expr::ExprContent::Intrinsic {
                 free_vars: ctx.var_names.index_count(),
-                ty: convert_type(&mut ctx.type_names, ty)?,
+                free_types: ctx.type_names.index_count(),
+                intrinsic,
             }))
         }
     }

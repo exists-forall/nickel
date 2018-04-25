@@ -110,6 +110,10 @@ pub Type: syntax::Type = {
     <PairType>,
 };
 
+Intrinsic: expr::Intrinsic = {
+    "refl_equiv" => expr::Intrinsic::ReflEquiv,
+};
+
 AtomicExpr: syntax::Expr = {
     "(" <Expr> ")",
 
@@ -134,7 +138,13 @@ AtomicExpr: syntax::Expr = {
             callee: Box::new(callee),
             arg: Box::new(arg),
         }
-    }
+    },
+
+    <intrinsic: Intrinsic> => {
+        syntax::Expr::Intrinsic {
+            intrinsic,
+        }
+    },
 };
 
 InstExpr: syntax::Expr = {
@@ -143,10 +153,6 @@ InstExpr: syntax::Expr = {
             receiver: Box::new(receiver),
             type_params,
         }
-    },
-
-    "refl_equiv" "{" <ty: Type> "}" => {
-        syntax::Expr::ReflEquiv { ty }
     },
 };
 
