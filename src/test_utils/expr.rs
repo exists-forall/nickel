@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::iter::repeat;
 
+use super::rc_str::rc_str;
 use expr::*;
 use types::*;
 
@@ -23,9 +24,8 @@ pub fn var(usage: VarUsage, free_vars: usize, free_types: usize, index: usize) -
 pub fn forall(param_count: usize, body: Expr<Rc<String>>) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::ForAll {
         type_params: Rc::new(
-            repeat(TypeParam {
-                name: Rc::new("".to_owned()),
-            }).take(param_count)
+            repeat(TypeParam { name: rc_str("") })
+                .take(param_count)
                 .collect(),
         ),
         body,
@@ -38,9 +38,7 @@ pub fn forall_named(params: &[&str], body: Expr<Rc<String>>) -> Expr<Rc<String>>
             params
                 .iter()
                 .cloned()
-                .map(|name| TypeParam {
-                    name: Rc::new(name.to_owned()),
-                })
+                .map(|name| TypeParam { name: rc_str(name) })
                 .collect(),
         ),
         body,
@@ -49,7 +47,7 @@ pub fn forall_named(params: &[&str], body: Expr<Rc<String>>) -> Expr<Rc<String>>
 
 pub fn func(arg_type: Type<Rc<String>>, body: Expr<Rc<String>>) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::Func {
-        arg_name: Rc::new("".to_owned()),
+        arg_name: rc_str(""),
         arg_type,
         arg_phase: Phase::Dynamic,
         body,
@@ -70,7 +68,7 @@ pub fn func_named(
     body: Expr<Rc<String>>,
 ) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::Func {
-        arg_name: Rc::new(arg_name.to_owned()),
+        arg_name: rc_str(arg_name),
         arg_type,
         arg_phase: Phase::Dynamic,
         body,
@@ -111,7 +109,7 @@ pub fn pair(left: Expr<Rc<String>>, right: Expr<Rc<String>>) -> Expr<Rc<String>>
 
 pub fn let_vars(count: usize, val: Expr<Rc<String>>, body: Expr<Rc<String>>) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::Let {
-        names: Rc::new(repeat(Rc::new("".to_owned())).take(count).collect()),
+        names: Rc::new(repeat(rc_str("")).take(count).collect()),
         val,
         body,
     })
@@ -123,7 +121,7 @@ pub fn let_vars_named(
     body: Expr<Rc<String>>,
 ) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::Let {
-        names: Rc::new(names.iter().map(|&name| Rc::new(name.to_owned())).collect()),
+        names: Rc::new(names.iter().map(|&name| rc_str(name)).collect()),
         val,
         body,
     })
@@ -135,8 +133,8 @@ pub fn let_exists(
     body: Expr<Rc<String>>,
 ) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::LetExists {
-        type_names: Rc::new(repeat(Rc::new("".to_owned())).take(type_count).collect()),
-        val_name: Rc::new("".to_owned()),
+        type_names: Rc::new(repeat(rc_str("")).take(type_count).collect()),
+        val_name: rc_str(""),
         val,
         body,
     })
@@ -149,13 +147,8 @@ pub fn let_exists_named(
     body: Expr<Rc<String>>,
 ) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::LetExists {
-        type_names: Rc::new(
-            type_names
-                .iter()
-                .map(|&name| Rc::new(name.to_owned()))
-                .collect(),
-        ),
-        val_name: Rc::new(val_name.to_owned()),
+        type_names: Rc::new(type_names.iter().map(|&name| rc_str(name)).collect()),
+        val_name: rc_str(val_name),
         val,
         body,
     })
@@ -167,13 +160,7 @@ pub fn make_exists(
     body: Expr<Rc<String>>,
 ) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::MakeExists {
-        params: Rc::new(
-            params
-                .iter()
-                .cloned()
-                .map(|ty| (Rc::new("".to_owned()), ty))
-                .collect(),
-        ),
+        params: Rc::new(params.iter().cloned().map(|ty| (rc_str(""), ty)).collect()),
         type_body,
         body,
     })
@@ -189,7 +176,7 @@ pub fn make_exists_named(
             params
                 .iter()
                 .cloned()
-                .map(|(name, ty)| (Rc::new(name.to_owned()), ty))
+                .map(|(name, ty)| (rc_str(name), ty))
                 .collect(),
         ),
         type_body,
@@ -213,7 +200,7 @@ pub fn cast_named(
 ) -> Expr<Rc<String>> {
     Expr::from_content(ExprContent::Cast {
         param: TypeParam {
-            name: Rc::new(param_name.to_owned()),
+            name: rc_str(param_name),
         },
         type_body,
         equivalence,

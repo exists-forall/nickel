@@ -29,6 +29,7 @@ mod test {
     use expr;
     use types;
     use test_utils::parse_syntax::*;
+    use test_utils::rc_str::rc_str;
 
     fn name(s: &str) -> Result<String, ParseError<usize, lex::Token, lex::Error>> {
         grammar::RawNameParser::new().parse(lex::Lexer::from_str(s))
@@ -77,7 +78,7 @@ mod test {
         assert_eq!(
             ident("foo"),
             Ok(Ident {
-                name: "foo".to_owned(),
+                name: rc_str("foo"),
                 collision_id: 0,
             })
         );
@@ -85,7 +86,7 @@ mod test {
         assert_eq!(
             ident("`hello \\` world`"),
             Ok(Ident {
-                name: "hello ` world".to_owned(),
+                name: rc_str("hello ` world"),
                 collision_id: 0,
             })
         );
@@ -96,7 +97,7 @@ mod test {
         assert_eq!(
             ident("foo#42"),
             Ok(Ident {
-                name: "foo".to_owned(),
+                name: rc_str("foo"),
                 collision_id: 42,
             })
         );
@@ -104,7 +105,7 @@ mod test {
         assert_eq!(
             ident("foo -- comment 1 \n # -- comment 2 \n 42"),
             Ok(Ident {
-                name: "foo".to_owned(),
+                name: rc_str("foo"),
                 collision_id: 42,
             })
         );
@@ -112,7 +113,7 @@ mod test {
         assert_eq!(
             ident("`quoted ident`#005"),
             Ok(Ident {
-                name: "quoted ident".to_owned(),
+                name: rc_str("quoted ident"),
                 collision_id: 5,
             })
         );

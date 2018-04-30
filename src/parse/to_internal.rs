@@ -23,7 +23,7 @@ fn convert_type_params(params: Vec<syntax::TypeParam>) -> Rc<Vec<types::TypePara
         params
             .into_iter()
             .map(|param| types::TypeParam {
-                name: Rc::new(param.ident.name),
+                name: param.ident.name,
             })
             .collect(),
     )
@@ -55,7 +55,7 @@ pub fn convert_type(
             let result = types::Type::from_content(types::TypeContent::Quantified {
                 quantifier,
                 param: types::TypeParam {
-                    name: Rc::new(param.ident.name),
+                    name: param.ident.name,
                 },
                 body: convert_type(type_names, *body)?,
             });
@@ -150,7 +150,7 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             ctx.var_names.add_name(arg_name.clone())?;
 
             let result = expr::Expr::from_content(expr::ExprContent::Func {
-                arg_name: Rc::new(arg_name.name),
+                arg_name: arg_name.name,
                 arg_type: convert_type(&mut ctx.type_names, arg_type)?,
                 arg_phase,
                 body: convert_expr(ctx, *body)?,
@@ -198,7 +198,7 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             }
 
             let result = expr::Expr::from_content(expr::ExprContent::Let {
-                names: Rc::new(names.into_iter().map(|name| Rc::new(name.name)).collect()),
+                names: Rc::new(names.into_iter().map(|name| name.name).collect()),
                 val: converted_val,
                 body: convert_expr(ctx, *body)?,
             });
@@ -226,13 +226,8 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             ctx.var_names.add_name(val_name.clone())?;
 
             let result = expr::Expr::from_content(expr::ExprContent::LetExists {
-                type_names: Rc::new(
-                    type_names
-                        .into_iter()
-                        .map(|name| Rc::new(name.name))
-                        .collect(),
-                ),
-                val_name: Rc::new(val_name.name),
+                type_names: Rc::new(type_names.into_iter().map(|name| name.name).collect()),
+                val_name: val_name.name,
                 val: converted_val,
                 body: convert_expr(ctx, *body)?,
             });
@@ -252,8 +247,7 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
             let mut converted_params = Vec::with_capacity(params.len());
             for (ident, ty) in params {
                 param_idents.push(ident.clone());
-                converted_params
-                    .push((Rc::new(ident.name), convert_type(&mut ctx.type_names, ty)?));
+                converted_params.push((ident.name, convert_type(&mut ctx.type_names, ty)?));
             }
 
             ctx.type_names.push_scope();
@@ -283,7 +277,7 @@ pub fn convert_expr(ctx: &mut Context, ex: syntax::Expr) -> Result<expr::Expr<Rc
 
             Ok(expr::Expr::from_content(expr::ExprContent::Cast {
                 param: types::TypeParam {
-                    name: Rc::new(param.ident.name),
+                    name: param.ident.name,
                 },
                 type_body: converted_type_body,
                 equivalence: convert_expr(ctx, *equivalence)?,

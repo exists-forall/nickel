@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use lalrpop_util::ParseError;
 
 use super::syntax;
@@ -10,7 +12,7 @@ grammar;
 pub Ident: syntax::Ident = {
     <name: Name> <collision_id: ("#" <UInt>)?> => {
         syntax::Ident {
-            name,
+            name: Rc::new(name),
             collision_id: collision_id.unwrap_or(0),
         }
     },

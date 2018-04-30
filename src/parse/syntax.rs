@@ -1,9 +1,11 @@
+use std::rc::Rc;
+
 use types::{Phase, Quantifier};
 use expr::{Intrinsic, VarUsage};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Ident {
-    pub name: String,
+    pub name: Rc<String>,
     pub collision_id: u64,
 }
 
