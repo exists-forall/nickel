@@ -108,8 +108,8 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
         self.free
     }
 
-    pub fn annot(&self) -> TAnnot {
-        self.data.annot.clone()
+    pub fn annot(&self) -> &TAnnot {
+        &self.data.annot
     }
 
     pub fn from_content_annot(annot: TAnnot, content: TypeContent<TAnnot, Name>) -> Self {
@@ -395,7 +395,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
             },
         };
 
-        AnnotType::from_content_annot(self.annot(), new_content)
+        AnnotType::from_content_annot(self.annot().clone(), new_content)
     }
 
     fn increment_bound(&self, inc_by: usize) -> Self {
@@ -430,7 +430,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
 
         match self.to_content() {
             TypeContent::Unit { free } => AnnotType::from_content_annot(
-                self.annot(),
+                self.annot().clone(),
                 TypeContent::Unit {
                     free: free - replacements.len(),
                 },
@@ -440,7 +440,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 let new_free = free - replacements.len();
                 if start_index + replacements.len() <= index {
                     AnnotType::from_content_annot(
-                        self.annot(),
+                        self.annot().clone(),
                         TypeContent::Var {
                             free: new_free,
                             index: index - replacements.len(),
@@ -448,7 +448,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                     )
                 } else if index < start_index {
                     AnnotType::from_content_annot(
-                        self.annot(),
+                        self.annot().clone(),
                         TypeContent::Var {
                             free: new_free,
                             index,
@@ -467,7 +467,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 param,
                 body,
             } => AnnotType::from_content_annot(
-                self.annot(),
+                self.annot().clone(),
                 TypeContent::Quantified {
                     quantifier,
                     param,
@@ -481,7 +481,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
                 ret,
                 ret_phase,
             } => AnnotType::from_content_annot(
-                self.annot(),
+                self.annot().clone(),
                 TypeContent::Func {
                     arg: arg.subst_inner(start_index, replacements),
                     arg_phase,
@@ -491,7 +491,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
             ),
 
             TypeContent::Pair { left, right } => AnnotType::from_content_annot(
-                self.annot(),
+                self.annot().clone(),
                 TypeContent::Pair {
                     left: left.subst_inner(start_index, replacements),
                     right: right.subst_inner(start_index, replacements),
@@ -499,7 +499,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
             ),
 
             TypeContent::App { constructor, param } => AnnotType::from_content_annot(
-                self.annot(),
+                self.annot().clone(),
                 TypeContent::App {
                     constructor: constructor.subst_inner(start_index, replacements),
                     param: param.subst_inner(start_index, replacements),
@@ -507,7 +507,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
             ),
 
             TypeContent::Equiv { orig, dest } => AnnotType::from_content_annot(
-                self.annot(),
+                self.annot().clone(),
                 TypeContent::Equiv {
                     orig: orig.subst_inner(start_index, replacements),
                     dest: dest.subst_inner(start_index, replacements),
@@ -515,7 +515,7 @@ impl<TAnnot: Clone, Name: Clone> AnnotType<TAnnot, Name> {
             ),
 
             TypeContent::Size { ty } => AnnotType::from_content_annot(
-                self.annot(),
+                self.annot().clone(),
                 TypeContent::Size {
                     ty: ty.subst_inner(start_index, replacements),
                 },
