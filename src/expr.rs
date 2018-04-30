@@ -178,8 +178,8 @@ impl<TAnnot: Clone, EAnnot: Clone, Name: Clone> AnnotExpr<TAnnot, EAnnot, Name> 
         self.free_types
     }
 
-    pub fn annot(&self) -> EAnnot {
-        self.data.annot.clone()
+    pub fn annot(&self) -> &EAnnot {
+        &self.data.annot
     }
 
     pub fn from_content_annot(annot: EAnnot, content: ExprContent<TAnnot, EAnnot, Name>) -> Self {

@@ -194,7 +194,7 @@ pub fn annot_types<Name: Clone + Default>(
             let body_annot = annot_types(ctx, body)?;
             ctx.pop_scope();
 
-            let mut result_type = body_annot.annot().ty;
+            let mut result_type = body_annot.annot().ty.clone();
             for type_param in type_params.iter().rev() {
                 result_type = Type::from_content(TypeContent::Quantified {
                     quantifier: Quantifier::ForAll,
@@ -236,7 +236,7 @@ pub fn annot_types<Name: Clone + Default>(
             let Annot {
                 phase: ret_phase,
                 ty: ret_ty,
-            } = body_annot.annot();
+            } = body_annot.annot().clone();
 
             Ok(AnnotExpr::from_content_annot(
                 Annot {
@@ -265,7 +265,7 @@ pub fn annot_types<Name: Clone + Default>(
         } => {
             let receiver_annot = annot_types(ctx, receiver)?;
 
-            let mut nested_receiver_ty = receiver_annot.annot().ty;
+            let mut nested_receiver_ty = receiver_annot.annot().ty.clone();
             for _ in 0..type_params.len() {
                 if let TypeContent::Quantified {
                     quantifier: Quantifier::ForAll,
@@ -315,12 +315,12 @@ pub fn annot_types<Name: Clone + Default>(
                     });
                 }
 
-                if !subtype(arg_annot.annot().ty, arg.clone()) {
+                if !subtype(arg_annot.annot().ty.clone(), arg.clone()) {
                     return Err(Error::Mismatch {
                         context: ctx.clone(),
                         in_expr: ex,
                         expected: arg,
-                        actual: arg_annot.annot().ty,
+                        actual: arg_annot.annot().ty.clone(),
                     });
                 }
 
@@ -347,7 +347,7 @@ pub fn annot_types<Name: Clone + Default>(
                 return Err(Error::ExpectedFunc {
                     context: ctx.clone(),
                     in_expr: ex,
-                    actual: callee_annot.annot().ty,
+                    actual: callee_annot.annot().ty.clone(),
                 });
             }
         }
@@ -365,8 +365,8 @@ pub fn annot_types<Name: Clone + Default>(
                 Annot {
                     phase: result_phase,
                     ty: Type::from_content(TypeContent::Pair {
-                        left: left_annot.annot().ty,
-                        right: right_annot.annot().ty,
+                        left: left_annot.annot().ty.clone(),
+                        right: right_annot.annot().ty.clone(),
                     }),
                 },
                 ExprContent::Pair {
@@ -383,7 +383,7 @@ pub fn annot_types<Name: Clone + Default>(
 
             debug_assert!(names.len() > 0);
             let phase = val_annot.annot().phase;
-            let mut nested_pairs = val_annot.annot().ty;
+            let mut nested_pairs = val_annot.annot().ty.clone();
             for name in &names[0..names.len() - 1] {
                 if let TypeContent::Pair { left, right } = nested_pairs.to_content() {
                     ctx.add_var_unmoved(name.clone(), Annot { phase, ty: left });
@@ -413,7 +413,7 @@ pub fn annot_types<Name: Clone + Default>(
             ctx.pop_scope();
 
             Ok(AnnotExpr::from_content_annot(
-                body_annot.annot(),
+                body_annot.annot().clone(),
                 ExprContent::Let {
                     names,
                     val: val_annot,
@@ -432,7 +432,7 @@ pub fn annot_types<Name: Clone + Default>(
 
             ctx.push_scope();
 
-            let mut nested = val_annot.annot().ty;
+            let mut nested = val_annot.annot().ty.clone();
             for type_name in type_names.iter() {
                 if let TypeContent::Quantified {
                     quantifier: Quantifier::Exists,
@@ -467,7 +467,7 @@ pub fn annot_types<Name: Clone + Default>(
             ctx.pop_scope();
 
             Ok(AnnotExpr::from_content_annot(
-                body_annot.annot(),
+                body_annot.annot().clone(),
                 ExprContent::LetExists {
                     type_names,
                     val_name,
@@ -490,11 +490,14 @@ pub fn annot_types<Name: Clone + Default>(
                 .collect::<Vec<_>>();
             let instantiated_type_body = type_body.subst(&substitutions);
 
-            if !subtype(body_annot.annot().ty, instantiated_type_body.clone()) {
+            if !subtype(
+                body_annot.annot().ty.clone(),
+                instantiated_type_body.clone(),
+            ) {
                 return Err(Error::Mismatch {
                     context: ctx.clone(),
                     in_expr: ex,
-                    actual: body_annot.annot().ty,
+                    actual: body_annot.annot().ty.clone(),
                     expected: instantiated_type_body.clone(),
                 });
             }
@@ -534,12 +537,12 @@ pub fn annot_types<Name: Clone + Default>(
                 let type_body_orig = type_body.subst(&[orig]);
                 let type_body_dest = type_body.subst(&[dest]);
 
-                if !subtype(body_annot.annot().ty, type_body_orig.clone()) {
+                if !subtype(body_annot.annot().ty.clone(), type_body_orig.clone()) {
                     return Err(Error::Mismatch {
                         context: ctx.clone(),
                         in_expr: ex,
                         expected: type_body_orig,
-                        actual: body_annot.annot().ty,
+                        actual: body_annot.annot().ty.clone(),
                     });
                 }
 
@@ -565,7 +568,7 @@ pub fn annot_types<Name: Clone + Default>(
                 return Err(Error::ExpectedEquivalence {
                     context: ctx.clone(),
                     in_expr: ex,
-                    actual: equivalence_annot.annot().ty,
+                    actual: equivalence_annot.annot().ty.clone(),
                 });
             }
         }
