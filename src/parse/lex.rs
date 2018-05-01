@@ -17,7 +17,6 @@ pub enum Token {
     KeyMove,
     KeyFunc,
     KeyLet,
-    KeyLetExists,
     KeyIn,
     KeyOf,
     KeyCast,
@@ -70,7 +69,6 @@ lazy_static! {
         keywords.insert("move", Token::KeyMove);
         keywords.insert("func", Token::KeyFunc);
         keywords.insert("let", Token::KeyLet);
-        keywords.insert("let_exists", Token::KeyLetExists);
         keywords.insert("in", Token::KeyIn);
         keywords.insert("of", Token::KeyOf);
         keywords.insert("cast", Token::KeyCast);

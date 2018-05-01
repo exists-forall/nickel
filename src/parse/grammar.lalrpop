@@ -202,7 +202,7 @@ BlockExpr: syntax::Expr = {
         }
     },
 
-    "let_exists"
+    "let" "exists"
     <type_names: ("{" <Ident> "}")+>
     <val_name: Ident> "=" <val: Expr>
     "in" <body: BlockExpr> => {
@@ -263,7 +263,6 @@ extern {
         "move" => lex::Token::KeyMove,
         "func" => lex::Token::KeyFunc,
         "let" => lex::Token::KeyLet,
-        "let_exists" => lex::Token::KeyLetExists,
         "in" => lex::Token::KeyIn,
         "of" => lex::Token::KeyOf,
         "cast" => lex::Token::KeyCast,

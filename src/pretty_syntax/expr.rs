@@ -272,7 +272,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             );
 
             let content_pretty = Group::new(
-                "let_exists"
+                "let exists"
                     .join(Conditional::OnlyUnbroken(" "))
                     .join(block(binding_pretty))
                     .join(Conditional::OnlyUnbroken(" "))

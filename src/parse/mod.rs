@@ -519,7 +519,7 @@ mod test {
         );
 
         assert_eq!(
-            expr("let_exists {T} x = move y in move x"),
+            expr("let exists {T} x = move y in move x"),
             Ok(syntax::Expr::LetExists {
                 type_names: vec![mk_ident("T")],
                 val_name: mk_ident("x"),
@@ -529,7 +529,7 @@ mod test {
         );
 
         assert_eq!(
-            expr("let_exists {T} {U} x = move y in move x"),
+            expr("let exists {T} {U} x = move y in move x"),
             Ok(syntax::Expr::LetExists {
                 type_names: vec![mk_ident("T"), mk_ident("U")],
                 val_name: mk_ident("x"),
@@ -784,7 +784,7 @@ mod test {
             conv(
                 &["foo", "bar"],
                 &[],
-                "let_exists {T} {U} x = move foo in bar{T}{U}(move x)",
+                "let exists {T} {U} x = move foo in bar{T}{U}(move x)",
             ),
             Ok(ex::let_exists_named(
                 &["T", "U"],
