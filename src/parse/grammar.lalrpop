@@ -214,7 +214,7 @@ BlockExpr: syntax::Expr = {
         }
     },
 
-    "make_exists"
+    "exists"
     <params: ("{" <Ident> "=" <Type> "}")+>
     <type_body: Type>
     "of" <body: BlockExpr> => {
@@ -265,7 +265,6 @@ extern {
         "let" => lex::Token::KeyLet,
         "let_exists" => lex::Token::KeyLetExists,
         "in" => lex::Token::KeyIn,
-        "make_exists" => lex::Token::KeyMakeExists,
         "of" => lex::Token::KeyOf,
         "cast" => lex::Token::KeyCast,
         "by" => lex::Token::KeyBy,

@@ -19,7 +19,6 @@ pub enum Token {
     KeyLet,
     KeyLetExists,
     KeyIn,
-    KeyMakeExists,
     KeyOf,
     KeyCast,
     KeyBy,
@@ -73,7 +72,6 @@ lazy_static! {
         keywords.insert("let", Token::KeyLet);
         keywords.insert("let_exists", Token::KeyLetExists);
         keywords.insert("in", Token::KeyIn);
-        keywords.insert("make_exists", Token::KeyMakeExists);
         keywords.insert("of", Token::KeyOf);
         keywords.insert("cast", Token::KeyCast);
         keywords.insert("by", Token::KeyBy);

@@ -330,7 +330,7 @@ pub fn to_pretty<Name: Clone + Into<Rc<String>>>(
             let body_pretty = to_pretty(var_names, type_names, Place::MakeExistsBody, body);
 
             let content_pretty = Group::new(
-                "make_exists"
+                "exists"
                     .join(Conditional::OnlyUnbroken(" "))
                     .join(block(Group::new(
                         params_pretty.join(Sep(1)).join(type_body_pretty),
