@@ -841,5 +841,13 @@ mod test {
                 ex::var(Usage::Copy, 2, 1, 0)
             ))
         );
+
+        assert_eq!(
+            conv(&[], &["T"], "refl_equiv{T}"),
+            Ok(ex::inst(
+                ex::intrinsic(expr::Intrinsic::ReflEquiv, 0, 1),
+                &[ty::var(1, 0)]
+            ))
+        );
     }
 }

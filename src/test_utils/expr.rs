@@ -207,3 +207,11 @@ pub fn cast_named(
         body,
     })
 }
+
+pub fn intrinsic(intrinsic: Intrinsic, free_vars: usize, free_types: usize) -> Expr<Rc<String>> {
+    Expr::from_content(ExprContent::Intrinsic {
+        intrinsic,
+        free_vars,
+        free_types,
+    })
+}
